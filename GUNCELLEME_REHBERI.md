@@ -55,21 +55,21 @@ if (!channelUsername) {
 ```typescript
 // YENİ INPUT EKLENDİ:
 <div className="space-y-2">
-  <Label htmlFor="channelUsername" className="text-sm font-medium">
+  <Label htmlFor="eserkaraeskichat" className="text-sm font-medium">
     Kanal Kullanıcı Adı (@ olmadan)
   </Label>
   <div className="relative">
     <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
     <Input
-      id="channelUsername"
+      id="eserkaraeskichat"
       value={channelUsername}
       onChange={(e) => setChannelUsername(e.target.value)}
-      placeholder="ornek_kanal"
+      placeholder="eserkaraeskichat"
       className="pl-10"
     />
   </div>
   <p className="text-xs text-muted-foreground">
-    Örnek: karaeski_official (@ işareti koymayın)
+    Örnek: eserkaraeskichat (@ işareti koymayın)
   </p>
 </div>
 ```
