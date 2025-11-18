@@ -34,9 +34,9 @@ Aşağıdaki satırları güncelleyin:
 
 ```typescript
 // TELEGRAM CHANNEL CONFIG - Update these values
-const TELEGRAM_CHANNEL_USERNAME = "eserkaraeskichat"; // Kanal kullanıcı adınızı girin (@ olmadan)
-const TELEGRAM_CHANNEL_URL = `https://t.me/eserkaraeskichat`;
-const TELEGRAM_BOT_TOKEN = "8414952935:AAH1sPR2wNj-IwzDsEHlAfFumL9x3cu_orU"; // Bot token'ınızı buraya yapıştırın
+const TELEGRAM_CHANNEL_USERNAME = "karaeski_official"; // Kanal kullanıcı adınızı girin (@ olmadan)
+const TELEGRAM_CHANNEL_URL = `https://t.me/${TELEGRAM_CHANNEL_USERNAME}`;
+const TELEGRAM_BOT_TOKEN = "YOUR_BOT_TOKEN"; // Bot token'ınızı buraya yapıştırın
 ```
 
 **Örnek:**
