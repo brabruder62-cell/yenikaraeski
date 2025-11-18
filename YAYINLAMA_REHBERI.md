@@ -137,7 +137,7 @@ https://karaeski-app.vercel.app/admin/login
 ### 2. Settings Sayfasını Yapılandırın
 Admin panel → **Settings**:
 
-- **Telegram Bot Token:** ``
+- **Telegram Bot Token:** `7891234560:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw`
 - **Telegram Channel Username:** `@karaeski_official` (sizin kanalınız)
 - **Daily Bonus Amount:** `100`
 - **Referral Bonus Amount:** `500`
