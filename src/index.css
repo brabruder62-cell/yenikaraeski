@@ -1,0 +1,294 @@
+/**
+ * =====================================
+ *       WINZA.BET DESIGN SYSTEM
+ * =====================================
+ * 
+ * Project: Telegram Casino Mini App
+ * Type: Gaming/Betting Platform
+ * 
+ * DESIGN PHILOSOPHY
+ * -----------------
+ * Core Principle: Vibrant gaming experience with premium green gradient aesthetic
+ * Design Style: Modern Gaming Dark Mode with bold accents
+ * Emotion Goal: Excitement, energy, trust, and premium feel
+ * 
+ * COLOR SYSTEM (HSL FORMAT)
+ * -------------
+ * Primary (Neon Green): 142 76% 36% - Main brand color, CTAs, active states
+ * Green Vibrant: 142 84% 45% - Bright accents, highlights
+ * Dark BG: 220 13% 9% - Main background
+ * Card Dark: 220 13% 12% - Card backgrounds
+ * Deep Dark: 220 13% 7% - Deepest backgrounds
+ * Text Light: 0 0% 98% - Primary text
+ * Text Muted: 220 9% 46% - Secondary text
+ * Green Glow: 142 76% 36% - For glow effects
+ * 
+ * GRADIENT BACKGROUNDS
+ * --------------------
+ * Hero: Green to teal radial gradient
+ * Cards: Subtle dark gradients with green accents
+ * 
+ * TYPOGRAPHY
+ * ----------
+ * Display: Inter/System, bold, 24-32px
+ * Body: Inter/System, 14-16px
+ * 
+ * INTERACTIONS
+ * ------------
+ * Transitions: 200-300ms ease
+ * Hover: Scale 1.02, brightness increase
+ * Active: Scale 0.98, glow effect
+ * States: Complete loading/success/error coverage
+ * ====================================
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 13% 9%;
+    --foreground: 0 0% 98%;
+    --card: 220 13% 12%;
+    --card-foreground: 0 0% 98%;
+    --popover: 220 13% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 220 13% 15%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 220 13% 15%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 142 84% 45%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 13% 18%;
+    --input: 220 13% 18%;
+    --ring: 142 76% 36%;
+    --radius: 0.75rem;
+    --green-vibrant: 142 84% 45%;
+    --deep-dark: 220 13% 7%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .gradient-green {
+    background: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(160, 84%, 39%) 100%);
+  }
+  
+  .gradient-hero {
+    background: radial-gradient(ellipse at top, hsl(142, 76%, 36%) 0%, hsl(160, 84%, 39%) 50%, hsl(220, 13%, 9%) 100%);
+  }
+  
+  .glow-green {
+    box-shadow: 0 0 20px hsla(142, 76%, 36%, 0.3);
+  }
+  
+  .glow-green-strong {
+    box-shadow: 0 0 30px hsla(142, 76%, 36%, 0.5);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(142, 84%, 45%) 0%, hsl(160, 84%, 50%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animation Keyframes */
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(-100vh) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100vh) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes coin-bounce {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-20px) scale(1.2);
+    }
+  }
+
+  @keyframes scale-in {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-confetti-fall {
+    animation: confetti-fall 2s ease-in-out forwards;
+  }
+
+  .animate-coin-bounce {
+    animation: coin-bounce 0.6s ease-in-out;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.4s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  /* Float Animation for Welcome Page */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes float-slow {
+    0%, 100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(10px, -10px);
+    }
+  }
+
+  @keyframes float-slower {
+    0%, 100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(-10px, 10px);
+    }
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float-slow 6s ease-in-out infinite;
+  }
+
+  .animate-float-slower {
+    animation: float-slower 8s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 2s ease-in-out infinite;
+  }
+
+  /* Animation delays for staggered effects */
+  .animation-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animation-delay-300 {
+    animation-delay: 0.3s;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 0.4s;
+  }
+
+  .animation-delay-500 {
+    animation-delay: 0.5s;
+  }
+
+  /* Hover Animations */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px hsla(142, 76%, 36%, 0.2);
+  }
+
+  .hover-scale {
+    transition: transform 0.2s ease;
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+
+  .hover-glow {
+    transition: box-shadow 0.3s ease;
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 20px hsla(142, 76%, 36%, 0.4);
+  }
+}
