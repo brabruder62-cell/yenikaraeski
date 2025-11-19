@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import WelcomePage from "@/pages/WelcomePage";
 import HomePage from "@/pages/HomePage";
 import GamesPage from "@/pages/GamesPage";
@@ -25,37 +25,43 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthStore } from "@/store/auth-store";
 
+// Welcome wrapper: kanal kontrolü + yönlendirme
+function WelcomeWrapper() {
+  const navigate = useNavigate();
+  const { completeWelcome } = useAuthStore();
+
+  const handleWelcomeComplete = () => {
+    completeWelcome();          // store’u güncelle
+    navigate("/", { replace: true }); // ana sayfaya git
+  };
+
+  return <WelcomePage onComplete={handleWelcomeComplete} />;
+}
+
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { hasJoinedChannel, showWelcome } = useAuthStore();
-  
   if (showWelcome || !hasJoinedChannel) {
     return <Navigate to="/welcome" replace />;
   }
-  
   return <>{children}</>;
 }
 
 function App() {
-  const { initialize, completeWelcome } = useAuthStore();
+  const { initialize } = useAuthStore();
 
   useEffect(() => {
-    // Initialize auth and Telegram Web App on mount
-    initialize();
+    initialize(); // Telegram WebApp init + store kontrolü
   }, [initialize]);
-
-  const handleWelcomeComplete = () => {
-    completeWelcome();
-  };
 
   return (
     <TooltipProvider>
       <BrowserRouter>
         <Routes>
-          {/* Welcome Route */}
-          <Route path="/welcome" element={<WelcomePage onComplete={handleWelcomeComplete} />} />
-          
-          {/* Protected Public Routes */}
+          {/* 1) Welcome ekranı → başarılı olunca ana sayfaya yönlendirir */}
+          <Route path="/welcome" element={<WelcomeWrapper />} />
+
+          {/* 2) Korunan public rotalar */}
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/games" element={<ProtectedRoute><GamesPage /></ProtectedRoute>} />
           <Route path="/games/limbo" element={<ProtectedRoute><LimboGame /></ProtectedRoute>} />
@@ -63,8 +69,9 @@ function App() {
           <Route path="/games/mines" element={<ProtectedRoute><MinesGame /></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-          
-          {/* Admin Routes */}
+          <Route path="/store" element={<ProtectedRoute><UserStorePage /></ProtectedRoute>} />
+
+          {/* 3) Admin rotaları */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<DashboardPage />} />
@@ -77,7 +84,8 @@ function App() {
             <Route path="sponsors" element={<SponsorsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
-          
+
+          {/* 4) 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
