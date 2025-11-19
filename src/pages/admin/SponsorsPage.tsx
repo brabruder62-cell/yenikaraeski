@@ -22,9 +22,8 @@ interface Sponsor {
   created_at: string;
 }
 
-// 1) ANON UPLOAD – 401 kalkar
+// 1) UPLOAD – anon oturum yok, doğrudan yükle
 const uploadLogo = async (file: File): Promise<string> => {
-  await table.createSession({ anon: true });
   const { url } = await table.uploadFile(file);
   return url;
 };
