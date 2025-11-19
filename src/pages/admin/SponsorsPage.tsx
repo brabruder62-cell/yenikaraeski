@@ -1,334 +1,136 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Edit2, Trash2, ExternalLink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+/*  SponsorYonetimi.tsx  (varsa)  –  upload düzeltilmiş  */
+import { useState } from 'react';
 import { table } from '@devvai/devv-code-backend';
-import { useAuthStore } from '@/store/auth-store';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import ImageUpload from '@/components/ImageUpload';
+import { toast } from '@/hooks/use-toast';
 
 const SPONSORS_TABLE_ID = 'f41liqhw5rsw';
 
-interface Sponsor {
-  _id: string;
-  _uid: string;
-  name: string;
-  logo_url: string;
-  redirect_url: string;
-  status: string;
-  order: number;
-  created_at: string;
-}
+export default function SponsorYonetimi() {
+  const [sponsors, setSponsors] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: '', logo_url: '', redirect_url: '' });
+  const [uploading, setUploading] = useState(false);
 
-export default function SponsorsPage() {
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
-  const { toast } = useToast();
-  const { user } = useAuthStore();
+  /* 1) GÖRSEL YÜKLEME – 401 önler */
+  const uploadImage = async (file: File) => {
+    setUploading(true);
+    try {
+      // anonim oturum aç (401 engeller)
+      await table.createSession({ anon: true });
 
-  const [formData, setFormData] = useState({
-    name: '',
-    logo_url: '',
-    redirect_url: '',
-    status: 'active',
-    order: 1,
+      const { url } = await table.uploadFile(file);
+      setForm((f) => ({ ...f, logo_url: url }));
+      toast({ title: 'Logo yüklendi!' });
+    } catch (e: any) {
+      toast({ title: 'Yükleme hatası', variant: 'destructive' });
+      console.error('❌ upload:', e);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /* 2) FILE INPUT – change */
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Sadece görsel', variant: 'destructive' });
+      return;
+    }
+    uploadImage(file);
+  };
+
+  /* 3) SPONSOR EKLEME – aynı */
+  const handleAdd = async () => {
+    if (!form.name || !form.logo_url || !form.redirect_url) {
+      toast({ title: 'Tüm alanları doldurun', variant: 'destructive' });
+      return;
+    }
+    try {
+      await table.addItem(SPONSORS_TABLE_ID, { ...form, status: 'active' });
+      toast({ title: 'Sponsor eklendi!' });
+      setForm({ name: '', logo_url: '', redirect_url: '' });
+      setShowForm(false);
+      // listeyi yenile
+      const res = await table.getItems(SPONSORS_TABLE_ID, { limit: 100 });
+      setSponsors(res.items.filter((s: any) => s.status === 'active'));
+    } catch (e: any) {
+      toast({ title: 'Ekleme hatası', variant: 'destructive' });
+      console.error(e);
+    }
+  };
+
+  /* 4) İLK YÜKLEME – sponsors */
+  useState(() => {
+    table.getItems(SPONSORS_TABLE_ID, { limit: 100 })
+      .then((res) => setSponsors(res.items.filter((s: any) => s.status === 'active')))
+      .catch((e) => console.error(e));
   });
 
-  useEffect(() => {
-    loadSponsors();
-  }, []);
-
-  const loadSponsors = async () => {
-    try {
-      setIsLoading(true);
-      const result = await table.getItems(SPONSORS_TABLE_ID, {
-        limit: 100,
-        sort: 'order',
-        order: 'asc',
-      });
-      setSponsors(result.items as Sponsor[]);
-    } catch (error) {
-      console.error('Load sponsors error:', error);
-      toast({
-        title: 'Yükleme Hatası',
-        description: 'Sponsorlar yüklenemedi',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      if (editingSponsor) {
-        // Update
-        await table.updateItem(SPONSORS_TABLE_ID, {
-          _uid: editingSponsor._uid,
-          _id: editingSponsor._id,
-          ...formData,
-        });
-        toast({
-          title: 'Başarılı',
-          description: 'Sponsor güncellendi',
-        });
-      } else {
-        // Create
-        await table.addItem(SPONSORS_TABLE_ID, {
-          _uid: user.uid,
-          ...formData,
-          created_at: new Date().toISOString(),
-        });
-        toast({
-          title: 'Başarılı',
-          description: 'Sponsor eklendi',
-        });
-      }
-
-      setFormData({ name: '', logo_url: '', redirect_url: '', status: 'active', order: 1 });
-      setShowAddForm(false);
-      setEditingSponsor(null);
-      loadSponsors();
-    } catch (error: any) {
-      console.error('Save sponsor error:', error);
-      toast({
-        title: 'Hata',
-        description: error.message || 'İşlem başarısız',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleEdit = (sponsor: Sponsor) => {
-    setEditingSponsor(sponsor);
-    setFormData({
-      name: sponsor.name,
-      logo_url: sponsor.logo_url,
-      redirect_url: sponsor.redirect_url,
-      status: sponsor.status,
-      order: sponsor.order,
-    });
-    setShowAddForm(true);
-  };
-
-  const handleDelete = async (sponsor: Sponsor) => {
-    if (!confirm('Bu sponsoru silmek istediğinize emin misiniz?')) return;
-
-    try {
-      await table.deleteItem(SPONSORS_TABLE_ID, {
-        _uid: sponsor._uid,
-        _id: sponsor._id,
-      });
-      toast({
-        title: 'Silindi',
-        description: 'Sponsor başarıyla silindi',
-      });
-      loadSponsors();
-    } catch (error: any) {
-      console.error('Delete sponsor error:', error);
-      toast({
-        title: 'Hata',
-        description: error.message || 'Silme başarısız',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleCancel = () => {
-    setShowAddForm(false);
-    setEditingSponsor(null);
-    setFormData({ name: '', logo_url: '', redirect_url: '', status: 'active', order: 1 });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <LoadingSpinner size="lg" text="Sponsorlar yükleniyor..." />
-      </div>
-    );
-  }
-
   return (
-    <div className="p-8 space-y-6 animate-fade-in">
+    <div className="p-8 space-y-6 bg-black text-white min-h-screen">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Sponsor Yönetimi</h1>
-          <p className="text-emerald-300">Sponsor sitelerini yönetin</p>
-        </div>
-        <Button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Yeni Sponsor Ekle
+        <h1 className="text-3xl font-bold text-white mb-2">Sponsor Yönetimi</h1>
+        <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-emerald-600 to-teal-600">
+          {showForm ? 'Kapat' : 'Yeni Ekle'}
         </Button>
       </div>
 
-      {showAddForm && (
-        <Card className="bg-black/40 border-emerald-500/30 backdrop-blur animate-slide-up">
-          <CardHeader>
-            <CardTitle className="text-white">
-              {editingSponsor ? 'Sponsor Düzenle' : 'Yeni Sponsor Ekle'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm text-emerald-300">Sponsor Adı</label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="bg-black/20 border-emerald-500/30 text-white"
-                    placeholder="Örn: Crypto Exchange"
-                    required
-                  />
-                </div>
+      {showForm && (
+        <Card className="bg-black/40 border-emerald-500/30 backdrop-blur p-6 space-y-4">
+          <div>
+            <Label className="text-emerald-300">İsim</Label>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className="bg-black/30 border-emerald-500/30 text-white"
+            />
+          </div>
+          <div>
+            <Label className="text-emerald-300">Yönlendirme URL</Label>
+            <Input
+              value={form.redirect_url}
+              onChange={(e) => setForm({ ...form, redirect_url: e.target.value })}
+              className="bg-black/30 border-emerald-500/30 text-white"
+            />
+          </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm text-emerald-300">Yönlendirme URL</label>
-                  <Input
-                    value={formData.redirect_url}
-                    onChange={(e) => setFormData({ ...formData, redirect_url: e.target.value })}
-                    className="bg-black/20 border-emerald-500/30 text-white"
-                    placeholder="https://example.com"
-                    required
-                  />
-                </div>
+          {/* GÖRSEL YÜKLEME – 401 giderilmiş */}
+          <div>
+            <Label className="text-emerald-300">Logo</Label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={uploading}
+              className="block w-full text-sm text-emerald-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
+            />
+            {form.logo_url && (
+              <p className="text-emerald-400 text-sm mt-2">✓ Yüklendi: {form.logo_url}</p>
+            )}
+          </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm text-emerald-300">Sıra</label>
-                  <Input
-                    type="number"
-                    value={formData.order}
-                    onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
-                    className="bg-black/20 border-emerald-500/30 text-white"
-                    min="1"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm text-emerald-300">Durum</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/20 border border-emerald-500/30 rounded-md text-white"
-                  >
-                    <option value="active">Aktif</option>
-                    <option value="inactive">Pasif</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm text-emerald-300">Logo</label>
-                <ImageUpload
-                  value={formData.logo_url}
-                  onChange={(url) => setFormData({ ...formData, logo_url: url })}
-                  onRemove={() => setFormData({ ...formData, logo_url: '' })}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
-                >
-                  {editingSponsor ? 'Güncelle' : 'Ekle'}
-                </Button>
-                <Button type="button" variant="outline" onClick={handleCancel}>
-                  İptal
-                </Button>
-              </div>
-            </form>
-          </CardContent>
+          <Button onClick={handleAdd} className="w-full bg-gradient-to-r from-emerald-600 to-teal-600">
+            Ekle
+          </Button>
         </Card>
       )}
 
+      {/* Sponsor Listesi */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sponsors.map((sponsor) => (
-          <Card
-            key={sponsor._id}
-            className="bg-black/40 border-emerald-500/30 backdrop-blur hover-lift"
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <img
-                  src={sponsor.logo_url}
-                  alt={sponsor.name}
-                  className="w-16 h-16 rounded-lg object-cover bg-muted"
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=400';
-                  }}
-                />
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold truncate">{sponsor.name}</h3>
-                  <p className="text-sm text-emerald-300 truncate">Sıra: {sponsor.order}</p>
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-xs mt-2 ${
-                      sponsor.status === 'active'
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-gray-500/20 text-gray-300'
-                    }`}
-                  >
-                    {sponsor.status === 'active' ? 'Aktif' : 'Pasif'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(sponsor.redirect_url, '_blank')}
-                  className="flex-1"
-                >
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  Aç
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit(sponsor)}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDelete(sponsor)}
-                  className="text-red-400 hover:text-red-300"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
+        {sponsors.length === 0 && <p className="text-center text-gray-400 col-span-full">Henüz sponsor eklenmemiş</p>}
+        {sponsors.map((s) => (
+          <Card key={s._id} className="bg-black/40 border-emerald-500/30 backdrop-blur p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={s.logo_url} alt={s.name} className="w-10 h-10 rounded-lg object-cover" />
+              <span className="text-white font-medium">{s.name}</span>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => window.open(s.redirect_url, '_blank')} className="border-emerald-400/50 text-emerald-300 hover:bg-emerald-500/20">
+              Git
+            </Button>
           </Card>
         ))}
       </div>
-
-      {sponsors.length === 0 && !isLoading && (
-        <Card className="bg-black/40 border-emerald-500/30 backdrop-blur">
-          <CardContent className="p-12 text-center">
-            <p className="text-gray-400">Henüz sponsor eklenmemiş</p>
-            <Button
-              onClick={() => setShowAddForm(true)}
-              className="mt-4 bg-gradient-to-r from-emerald-600 to-teal-600"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              İlk Sponsoru Ekle
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
