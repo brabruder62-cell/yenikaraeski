@@ -1,16 +1,14 @@
-/*  UsersPage.tsx  –  DEVV AI BACKEND  –  TIKLANIR  */
+/*  UsersPage.tsx  –  TAM  –  Devv AI  –  Tailwind  */
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, Users, Coins, Calendar, Edit, UserX, Check } from 'lucide-react';
+import { Search, Users, Coins, Calendar, Edit, UserX, Check } from 'lucide-react';
 import { table } from '@devvai/devv-code-backend';
 import { toast } from '@/hooks/use-toast';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-const USERS_TABLE_ID = 'f41liqhtnp4w'; // DEVV AI table ID
+const USERS_TABLE_ID = 'f41liqhtnp4w';
 
 type User = any;
 
@@ -20,12 +18,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
 
   /* ----------  MODAL  ---------- */
-  const [modal, setModal] = useState<{
-    open: boolean;
-    user: User | null;
-    coin: string;
-    ref: string;
-  }>({ open: false, user: null, coin: '', ref: '' });
+  const [modal, setModal] = useState<{ open: boolean; user: User | null; coin: string; ref: string }>({ open: false, user: null, coin: '', ref: '' });
 
   /* ----------  FETCH  ---------- */
   const fetchUsers = async () => {
@@ -44,16 +37,12 @@ export default function UsersPage() {
   useEffect(() => { fetchUsers(); }, []);
 
   /* ----------  EDIT  ---------- */
-  const openEdit = (u: User) =>
-    setModal({ open: true, user: u, coin: String(u.coin_balance || 0), ref: String(u.referrals || 0) });
+  const openEdit = (u: User) => setModal({ open: true, user: u, coin: String(u.coin_balance || 0), ref: String(u.referrals || 0) });
 
   const saveEdit = async () => {
     if (!modal.user) return;
     try {
-      await table.updateItem(USERS_TABLE_ID, modal.user._id, {
-        coin_balance: Number(modal.coin),
-        referrals: Number(modal.ref),
-      });
+      await table.updateItem(USERS_TABLE_ID, modal.user._id, { coin_balance: Number(modal.coin), referrals: Number(modal.ref) });
       toast({ title: 'Güncellendi' });
       setModal({ open: false, user: null, coin: '', ref: '' });
       fetchUsers();
@@ -84,7 +73,7 @@ export default function UsersPage() {
 
   /* ----------  RENDER  ---------- */
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6 bg-black text-white min-h-screen">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Kullanıcı Yönetimi</h1>
