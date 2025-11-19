@@ -1,4 +1,4 @@
-/*  UsersPage.tsx  –  GERÇEK BACKEND  –  SADECE SEN GÖRÜRSÜN  */
+/*  UsersPage.tsx  –  DEVV AI BACKEND  –  TIKLANIR  */
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,25 +9,15 @@ import { toast } from '@/hooks/use-toast';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { getUser } from '@/lib/telegram';
 
-/* 1) ENV’deki izinli ID’ler (sadece sen) */
-const ADMIN_IDS = (import.meta.env.VITE_ADMIN_IDS || '').split(',').map((s: string) => s.trim());
-const USERS_TABLE_ID = 'f41liqhtnp4w'; // senin users tablosu
+const USERS_TABLE_ID = 'f41liqhtnp4w'; // DEVV AI table ID
 
 type User = any;
-
-/* 2) Yetki kontrolü */
-const isAdmin = () => {
-  const me = getUser();
-  return me && ADMIN_IDS.includes(String(me.id));
-};
 
 export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [forbidden, setForbidden] = useState(false);
 
   /* ----------  MODAL  ---------- */
   const [modal, setModal] = useState<{
@@ -39,7 +29,6 @@ export default function UsersPage() {
 
   /* ----------  FETCH  ---------- */
   const fetchUsers = async () => {
-    if (!isAdmin()) { setForbidden(true); return; }
     setLoading(true);
     try {
       const res = await table.getItems(USERS_TABLE_ID, { limit: 10000 });
@@ -94,14 +83,6 @@ export default function UsersPage() {
   );
 
   /* ----------  RENDER  ---------- */
-  if (forbidden)
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-black text-white">
-        <h1 className="text-2xl font-bold text-red-400 mb-2">Yetkiniz yok</h1>
-        <p className="text-gray-300">Bu panel sadece yöneticilere açıktır.</p>
-      </div>
-    );
-
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
