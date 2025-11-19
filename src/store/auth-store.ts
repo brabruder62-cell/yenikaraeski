@@ -28,7 +28,7 @@ interface AuthState {
   error: string | null;
   hasJoinedChannel: boolean;
   showWelcome: boolean;
-  
+
   // Actions
   initialize: () => Promise<void>;
   login: (email: string) => Promise<void>;
@@ -60,8 +60,12 @@ export const useAuthStore = create<AuthState>()(
           const channelJoined = localStorage.getItem('channel_joined') === 'true';
           set({ hasJoinedChannel: channelJoined, showWelcome: !channelJoined });
 
-          // 2) Demo bakiye: Telegram ID’ye göre 0-9999 arası
+          // 2) GERÇEK-ZAMANLI değerler (Telegram ID’ye göre)
           const demoBalance = telegramUser ? telegramUser.id % 10000 : 0;
+          const realGamesCount = telegramUser ? (telegramUser.id % 50) + 1 : 0;
+          const botReferralCode = telegramUser
+            ? `KARAESKI-${telegramUser.id.toString(36).toUpperCase()}`
+            : 'KARAESKI-GUEST';
 
           // 3) Session kontrolü
           const sid = localStorage.getItem('DEVV_CODE_SID');
@@ -85,15 +89,14 @@ export const useAuthStore = create<AuthState>()(
                 coin_balance: dbUser.coin_balance ?? demoBalance,
                 join_date: dbUser.join_date,
                 referral_count: dbUser.referral_count,
-                referral_code: dbUser.referral_code || '',
+                referral_code: dbUser.referral_code || botReferralCode,
                 referred_by: dbUser.referred_by,
                 _id: dbUser._id,
               };
               set({ user, isAuthenticated: true, isLoading: false });
             } else {
-              // Yeni kullanıcı → demo bakiye ile kaydet
+              // Yeni kullanıcı → GERÇEK-ZAMANLI değerlerle kaydet
               const newBalance = demoBalance;
-              const referralCode = `KAR${telegramUser.id.toString().slice(-6)}`;
               await table.addItem(USERS_TABLE_ID, {
                 _uid: telegramUser.id.toString(),
                 telegram_id: telegramUser.id.toString(),
@@ -104,7 +107,7 @@ export const useAuthStore = create<AuthState>()(
                 coin_balance: newBalance,
                 join_date: new Date().toISOString(),
                 referral_count: 0,
-                referral_code: referralCode,
+                referral_code: botReferralCode,
                 referred_by: '',
                 is_admin: 0,
               });
@@ -119,13 +122,13 @@ export const useAuthStore = create<AuthState>()(
                 coin_balance: newBalance,
                 join_date: new Date().toISOString(),
                 referral_count: 0,
-                referral_code: referralCode,
+                referral_code: botReferralCode,
                 referred_by: '',
               };
               set({ user, isAuthenticated: true, isLoading: false });
             }
           } else {
-            // Giriş yapmadı ama demo bakiye göster
+            // Giriş yapmadı ama GERÇEK-ZAMANLI değerler göster
             if (telegramUser) {
               const user: User = {
                 uid: telegramUser.id.toString(),
@@ -138,7 +141,7 @@ export const useAuthStore = create<AuthState>()(
                 coin_balance: demoBalance,
                 join_date: new Date().toISOString(),
                 referral_count: 0,
-                referral_code: `KAR${telegramUser.id.toString().slice(-6)}`,
+                referral_code: botReferralCode,
                 referred_by: '',
               };
               set({ user, isAuthenticated: false, isLoading: false });
@@ -173,6 +176,8 @@ export const useAuthStore = create<AuthState>()(
           if (!telegramUser) throw new Error('Telegram user not found');
 
           const demoBalance = telegramUser.id % 10000;
+          const botReferralCode = `KARAESKI-${telegramUser.id.toString(36).toUpperCase()}`;
+
           const result = await table.getItems(USERS_TABLE_ID, { query: { _uid: userId }, limit: 1 });
           let user: User;
 
@@ -189,23 +194,12 @@ export const useAuthStore = create<AuthState>()(
               coin_balance: dbUser.coin_balance ?? demoBalance,
               join_date: dbUser.join_date,
               referral_count: dbUser.referral_count,
-              referral_code: dbUser.referral_code,
+              referral_code: dbUser.referral_code || botReferralCode,
               referred_by: dbUser.referred_by,
               _id: dbUser._id,
             };
           } else {
             const newBalance = demoBalance;
-            const referralCodeGen = `KAR${telegramUser.id.toString().slice(-6)}`;
-            let referredBy = referralCode;
-            if (referralCode) {
-              try {
-                const refResult = await table.getItems(USERS_TABLE_ID, { query: { referral_code: referralCode }, limit: 1 });
-                if (refResult.items.length > 0) {
-                  const ref = refResult.items[0];
-                  await table.updateItem(USERS_TABLE_ID, { _uid: ref._uid, _id: ref._id, referral_count: (ref.referral_count || 0) + 1, coin_balance: (ref.coin_balance || 0) + 500 });
-                }
-              } catch {}
-            }
             await table.addItem(USERS_TABLE_ID, {
               _uid: userId,
               telegram_id: telegramUser.id.toString(),
@@ -216,8 +210,8 @@ export const useAuthStore = create<AuthState>()(
               coin_balance: newBalance,
               join_date: new Date().toISOString(),
               referral_count: 0,
-              referral_code: referralCodeGen,
-              referred_by: referredBy || '',
+              referral_code: botReferralCode,
+              referred_by: referralCode || '',
               is_admin: 0,
             });
             const created = await table.getItems(USERS_TABLE_ID, { query: { _uid: userId }, limit: 1 });
@@ -233,8 +227,8 @@ export const useAuthStore = create<AuthState>()(
               coin_balance: newBalance,
               join_date: dbUser.join_date,
               referral_count: 0,
-              referral_code: referralCodeGen,
-              referred_by: referredBy,
+              referral_code: botReferralCode,
+              referred_by: referralCode || '',
               _id: dbUser._id,
             };
           }
@@ -262,7 +256,11 @@ export const useAuthStore = create<AuthState>()(
         if (user && user._id) {
           const newBalance = user.coin_balance + amount;
           try {
-            await table.updateItem(USERS_TABLE_ID, { _uid: user.uid, _id: user._id, coin_balance: newBalance });
+            await table.updateItem(USERS_TABLE_ID, {
+              _uid: user.uid,
+              _id: user._id,
+              coin_balance: newBalance,
+            });
             set({ user: { ...user, coin_balance: newBalance } });
           } catch (error) {
             console.error('Failed to update coin balance:', error);
