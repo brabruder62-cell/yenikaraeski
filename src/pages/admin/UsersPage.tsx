@@ -1,4 +1,4 @@
-/*  UsersPage.tsx  –  butonlar + modal  */
+/*  UsersPage.tsx  –  SINIRSIZ ÇALIŞIR  */
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 
-const USERS_TABLE_ID = 'f41liqhtnp4w'; // << senin users table id
+const USERS_TABLE_ID = 'f41liqhtnp4w';
 
 type User = any;
 
@@ -56,7 +56,7 @@ export default function UsersPage() {
       });
       toast({ title: 'Güncellendi' });
       setModal({ open: false, user: null, coin: '', ref: '' });
-      fetchUsers(); // listeyi tazele
+      fetchUsers();
     } catch (e: any) {
       toast({ title: 'Güncelleme hatası', variant: 'destructive' });
       console.error(e);
@@ -179,7 +179,7 @@ export default function UsersPage() {
       </Card>
 
       {/* ----------  MODAL  ---------- */}
-      <Dialog open={modal.open} onOpenChange={(o) => setModal((p) => ({ ...p, open: o })}>
+      <Dialog open={modal.open} onOpenChange={(o) => setModal((p) => ({ ...p, open: o }))}>
         <DialogContent className="bg-black/90 border-emerald-500/30 text-white">
           <DialogHeader>
             <DialogTitle className="text-emerald-400">{modal.user?.username} Düzenle</DialogTitle>
