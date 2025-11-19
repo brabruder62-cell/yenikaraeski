@@ -257,18 +257,7 @@ export default function SponsorsPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      {sponsors.length === 0 && !isLoading && (
-        <Card className="bg-black/40 border-emerald-500/30 backdrop-blur">
-          <CardContent className="p-12 text-center">
-            <p className="text-gray-400">Henüz sponsor eklenmemiş</p>
-            <Button onClick={() => setShowAddForm(true)} className="mt-4 bg-gradient-to-r from-emerald-600 to-teal-600">
-              <Plus className="w-4 h-4 mr-2" /> İlk Sponsoru Ekle
-            </Button>
-          </CardContent>
-                  </Card>
-          </div>
+               </div>
         ))}
       </div>
 
@@ -283,5 +272,7 @@ export default function SponsorsPage() {
         </Card>
       )}
     </div>
+  );
+}
   );
 }
