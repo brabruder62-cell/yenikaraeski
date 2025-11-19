@@ -8,9 +8,10 @@ import { table } from '@devvai/devv-code-backend';
 import { toast } from '@/hooks/use-toast';
 import { getUser } from '@/lib/telegram';
 
+// 1) TABLE ID’LERİNİ DOĞRULA
 const USERS_TABLE_ID = 'f41liqhtnp4w';
 const SPONSORS_TABLE_ID = 'f41liqhw5rsw';
-const TASKS_TABLE_ID   = 'f41liqhtnp4x';
+const TASKS_TABLE_ID = 'f41liqhtnp4x';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -24,17 +25,20 @@ export default function DashboardPage() {
   const [form, setForm] = useState({ name: '', logo_url: '', redirect_url: '' });
   const [activities, setActivities] = useState<any[]>([]);
   const [popularGames, setPopularGames] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const telegramUser = getUser();
   const baseId = telegramUser?.id ?? 0;
 
-  // 1) GERÇEK-ZAMANLI VERİ ÇEKME
+  // 2) HATA AYIKLAMALI VERİ ÇEKME
   useEffect(() => {
     loadRealData();
   }, []);
 
   const loadRealData = async () => {
     try {
+      setError(null);
+
       // Toplam kullanıcı
       const usersRes = await table.getItems(USERS_TABLE_ID, { limit: 10000 });
       const totalUsers = usersRes.items.length;
@@ -73,12 +77,25 @@ export default function DashboardPage() {
       setSponsors(activeSponsors);
       setActivities(realActivities);
       setPopularGames(realPopularGames);
-    } catch (e) {
-      toast({ title: 'Veri çekme hatası', variant: 'destructive' });
+    } catch (e: any) {
+      console.error('Dashboard veri hatası:', e);
+      setError(e.message || 'Veri çekme hatası');
+      // Fallback demo veri
+      setStats({ totalUsers: 1234, totalCoins: 567890, activeTasks: 24, dailyActive: 420 });
+      setActivities([
+        { user: 'Ali_123', action: 'Limbo oyununda 150 coin kazandı', time: '2 dk önce' },
+        { user: 'Mehmet_77', action: 'Daily Bonus aldı', time: '5 dk önce' },
+      ]);
+      setPopularGames([
+        { name: 'Limbo', players: 417, percent: 65 },
+        { name: 'Dice', players: 591, percent: 70 },
+        { name: 'Mines', players: 196, percent: 45 },
+        { name: 'Tower Legend', players: 115, percent: 50 },
+      ]);
     }
   };
 
-  // 2) SPONSOR EKLEME (canlı kaydet)
+  // 3) SPONSOR EKLEME (canlı kaydet)
   const handleAddSponsor = async () => {
     if (!form.name || !form.logo_url || !form.redirect_url) {
       toast({ title: 'Tüm alanları doldurun', variant: 'destructive' });
@@ -96,8 +113,9 @@ export default function DashboardPage() {
       setForm({ name: '', logo_url: '', redirect_url: '' });
       setShowForm(false);
       loadRealData(); // listeyi yenile
-    } catch (e) {
+    } catch (e: any) {
       toast({ title: 'Ekleme hatası', variant: 'destructive' });
+      console.error(e);
     }
   };
 
@@ -107,6 +125,13 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
         <p className="text-emerald-300">Karaeski App yönetim paneline hoş geldiniz</p>
       </div>
+
+      {/* HATA VARSA GÖSTER */}
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/30 text-red-300 px-4 py-2 rounded-lg">
+          {error} (Demo veri gösteriliyor)
+        </div>
+      )}
 
       {/* GERÇEK-ZAMANLI STAT KARTLARI */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
