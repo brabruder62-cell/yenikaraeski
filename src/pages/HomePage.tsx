@@ -34,7 +34,8 @@ function HomePage() {
     localStorage.getItem('lastDailyClaim')
   );
 
-  const coins = user?.coin_balance || 1250;
+  // GERÇEK-ZAMANLI BAKİYE (Telegram ID’ye göre 0-9999 arası)
+  const coins = user?.coin_balance ?? 0;
 
   useEffect(() => {
     loadSponsors();
@@ -48,12 +49,9 @@ function HomePage() {
         sort: 'order',
         order: 'asc',
       });
-      
-      // Filter active sponsors
       const activeSponsors = result.items.filter(
         (s: any) => s.status === 'active'
       ) as Sponsor[];
-      
       setSponsors(activeSponsors);
     } catch (error) {
       console.error('Load sponsors error:', error);
@@ -71,19 +69,13 @@ function HomePage() {
 
   const handleClaimDaily = () => {
     if (!canClaimDaily()) return;
-
     const bonusAmount = 100;
     updateCoinBalance(bonusAmount);
-    
     const now = new Date().toISOString();
     localStorage.setItem('lastDailyClaim', now);
     setLastClaimed(now);
-
-    // Trigger haptic feedback
     triggerHaptic('heavy');
     triggerNotification('success');
-
-    // Show animations
     setShowCoinAnimation(true);
     setTimeout(() => {
       setShowCoinAnimation(false);
@@ -99,8 +91,8 @@ function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-green-900 to-teal-950 pb-20">
       <Confetti show={showConfetti} onComplete={() => setShowConfetti(false)} />
-      
-      {/* Header with Coins */}
+
+      {/* Header with REAL-TIME Coins */}
       <div className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-emerald-500/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -113,7 +105,7 @@ function HomePage() {
                 <p className="text-xs text-emerald-300">Casino & Games</p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 px-4 py-2 rounded-full border border-yellow-500/30 hover-glow relative">
               <Coins className="w-5 h-5 text-yellow-400" />
               <span className="text-lg font-bold text-yellow-300">{coins.toLocaleString()}</span>
@@ -134,9 +126,7 @@ function HomePage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white mb-1">Günlük Bonus</h3>
-                  <p className="text-sm text-emerald-300">
-                    {canClaimDaily() ? '+100 Coin Al' : 'Yarın Tekrar Gel'}
-                  </p>
+                  <p className="text-sm text-emerald-300">{canClaimDaily() ? '+100 Coin Al' : 'Yarın Tekrar Gel'}</p>
                 </div>
               </div>
               <Button
@@ -150,10 +140,10 @@ function HomePage() {
           </div>
         </Card>
 
-        {/* Sponsor Siteler */}
+        {/* Sponsor Sites */}
         <div className="space-y-4 animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <h2 className="text-xl font-bold text-white">Sponsor Siteler</h2>
-          
+
           {isLoadingSponsors ? (
             <div className="grid grid-cols-2 gap-4">
               {[1, 2, 3, 4].map((i) => (
