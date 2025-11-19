@@ -53,77 +53,102 @@ export const useAuthStore = create<AuthState>()(
       initialize: async () => {
         try {
           set({ isLoading: true, error: null });
-
-          // Initialize Telegram WebApp
           initTelegramWebApp();
-
-          // Get Telegram user data
           const telegramUser = getUser();
 
-          // Check channel membership from localStorage
+          // 1) Kanal katılım kontrolü
           const channelJoined = localStorage.getItem('channel_joined') === 'true';
           set({ hasJoinedChannel: channelJoined, showWelcome: !channelJoined });
 
-          // Check if we have a session
+          // 2) Demo bakiye: Telegram ID’ye göre 0-9999 arası
+          const demoBalance = telegramUser ? telegramUser.id % 10000 : 0;
+
+          // 3) Session kontrolü
           const sid = localStorage.getItem('DEVV_CODE_SID');
-          
-          if (sid) {
-            // User is already logged in, fetch from database
-            try {
-              // Get user ID from persisted state
-              const existingUser = get().user;
-              const userId = existingUser?.uid;
-              if (userId) {
-                // Query user from database by telegram_id
-                const result = await table.getItems(USERS_TABLE_ID, {
-                  query: {
-                    _uid: userId,
-                  },
-                  limit: 1
-                });
+          if (sid && telegramUser) {
+            // Backend’den kullanıcı çek
+            const result = await table.getItems(USERS_TABLE_ID, {
+              query: { _uid: telegramUser.id.toString() },
+              limit: 1,
+            });
 
-                if (result.items.length > 0) {
-                  const dbUser = result.items[0];
-                  const user: User = {
-                    uid: userId,
-                    email: dbUser.email || '',
-                    name: dbUser.first_name,
-                    telegram_id: parseInt(dbUser.telegram_id),
-                    telegram_username: dbUser.username,
-                    telegram_first_name: dbUser.first_name,
-                    telegram_last_name: dbUser.last_name,
-                    coin_balance: dbUser.coin_balance,
-                    join_date: dbUser.join_date,
-                    referral_count: dbUser.referral_count,
-                    referral_code: dbUser.referral_code || '',
-                    referred_by: dbUser.referred_by,
-                    _id: dbUser._id,
-                  };
-
-                  set({ 
-                    isAuthenticated: true, 
-                    user,
-                    isLoading: false 
-                  });
-                } else {
-                  set({ isLoading: false });
-                }
-              } else {
-                set({ isLoading: false });
-              }
-            } catch (error) {
-              console.error('Failed to fetch user from database:', error);
-              set({ isLoading: false });
+            if (result.items.length > 0) {
+              const dbUser = result.items[0];
+              const user: User = {
+                uid: dbUser._uid,
+                email: dbUser.email || '',
+                name: dbUser.first_name,
+                telegram_id: parseInt(dbUser.telegram_id),
+                telegram_username: dbUser.username,
+                telegram_first_name: dbUser.first_name,
+                telegram_last_name: dbUser.last_name,
+                coin_balance: dbUser.coin_balance ?? demoBalance,
+                join_date: dbUser.join_date,
+                referral_count: dbUser.referral_count,
+                referral_code: dbUser.referral_code || '',
+                referred_by: dbUser.referred_by,
+                _id: dbUser._id,
+              };
+              set({ user, isAuthenticated: true, isLoading: false });
+            } else {
+              // Yeni kullanıcı → demo bakiye ile kaydet
+              const newBalance = demoBalance;
+              const referralCode = `KAR${telegramUser.id.toString().slice(-6)}`;
+              await table.addItem(USERS_TABLE_ID, {
+                _uid: telegramUser.id.toString(),
+                telegram_id: telegramUser.id.toString(),
+                username: telegramUser.username || '',
+                first_name: telegramUser.first_name,
+                last_name: telegramUser.last_name || '',
+                email: '',
+                coin_balance: newBalance,
+                join_date: new Date().toISOString(),
+                referral_count: 0,
+                referral_code: referralCode,
+                referred_by: '',
+                is_admin: 0,
+              });
+              const user: User = {
+                uid: telegramUser.id.toString(),
+                email: '',
+                name: telegramUser.first_name,
+                telegram_id: telegramUser.id,
+                telegram_username: telegramUser.username,
+                telegram_first_name: telegramUser.first_name,
+                telegram_last_name: telegramUser.last_name,
+                coin_balance: newBalance,
+                join_date: new Date().toISOString(),
+                referral_count: 0,
+                referral_code: referralCode,
+                referred_by: '',
+              };
+              set({ user, isAuthenticated: true, isLoading: false });
             }
           } else {
-            set({ isLoading: false });
+            // Giriş yapmadı ama demo bakiye göster
+            if (telegramUser) {
+              const user: User = {
+                uid: telegramUser.id.toString(),
+                email: '',
+                name: telegramUser.first_name,
+                telegram_id: telegramUser.id,
+                telegram_username: telegramUser.username,
+                telegram_first_name: telegramUser.first_name,
+                telegram_last_name: telegramUser.last_name,
+                coin_balance: demoBalance,
+                join_date: new Date().toISOString(),
+                referral_count: 0,
+                referral_code: `KAR${telegramUser.id.toString().slice(-6)}`,
+                referred_by: '',
+              };
+              set({ user, isAuthenticated: false, isLoading: false });
+            } else {
+              set({ isLoading: false });
+            }
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Auth initialization error:', error);
-          set({ 
-            error: 'Failed to initialize authentication', 
-            isLoading: false 
-          });
+          set({ error: 'Failed to initialize authentication', isLoading: false });
         }
       },
 
@@ -134,10 +159,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: false });
         } catch (error: any) {
           console.error('Login error:', error);
-          set({ 
-            error: error.message || 'Failed to send verification code', 
-            isLoading: false 
-          });
+          set({ error: error.message || 'Failed to send verification code', isLoading: false });
           throw error;
         }
       },
@@ -145,27 +167,17 @@ export const useAuthStore = create<AuthState>()(
       verifyOTP: async (email: string, code: string, referralCode?: string) => {
         try {
           set({ isLoading: true, error: null });
-
-          // Verify OTP with Devv backend
           const response = await auth.verifyOTP(email, code);
           const userId = response.user.uid;
-
-          // Get Telegram user data
           const telegramUser = getUser();
+          if (!telegramUser) throw new Error('Telegram user not found');
 
-          // Check if user exists in database
-          const existingUsers = await table.getItems(USERS_TABLE_ID, {
-            query: {
-              _uid: userId,
-            },
-            limit: 1
-          });
-
+          const demoBalance = telegramUser.id % 10000;
+          const result = await table.getItems(USERS_TABLE_ID, { query: { _uid: userId }, limit: 1 });
           let user: User;
 
-          if (existingUsers.items.length > 0) {
-            // User exists, update with latest data
-            const dbUser = existingUsers.items[0];
+          if (result.items.length > 0) {
+            const dbUser = result.items[0];
             user = {
               uid: userId,
               email: response.user.email,
@@ -174,7 +186,7 @@ export const useAuthStore = create<AuthState>()(
               telegram_username: dbUser.username,
               telegram_first_name: dbUser.first_name,
               telegram_last_name: dbUser.last_name,
-              coin_balance: dbUser.coin_balance,
+              coin_balance: dbUser.coin_balance ?? demoBalance,
               join_date: dbUser.join_date,
               referral_count: dbUser.referral_count,
               referral_code: dbUser.referral_code,
@@ -182,69 +194,34 @@ export const useAuthStore = create<AuthState>()(
               _id: dbUser._id,
             };
           } else {
-            // New user - generate referral code
-            const referralCodeGenerated = `KAR${telegramUser.id.toString().slice(-6)}`;
-            
-            // Initial coin balance
-            let initialBalance = 1000;
+            const newBalance = demoBalance;
+            const referralCodeGen = `KAR${telegramUser.id.toString().slice(-6)}`;
             let referredBy = referralCode;
-
-            // If user was referred, give bonus and update referrer
             if (referralCode) {
-              initialBalance += 500; // Bonus for being referred
-              
-              // Find and update referrer
               try {
-                const referrerResult = await table.getItems(USERS_TABLE_ID, {
-                  query: {
-                    referral_code: referralCode,
-                  },
-                  limit: 1
-                });
-
-                if (referrerResult.items.length > 0) {
-                  const referrer = referrerResult.items[0];
-                  // Update referrer's count and give bonus
-                  await table.updateItem(USERS_TABLE_ID, {
-                    _uid: referrer._uid,
-                    _id: referrer._id,
-                    referral_count: (referrer.referral_count || 0) + 1,
-                    coin_balance: (referrer.coin_balance || 0) + 500, // Bonus for referrer
-                  });
+                const refResult = await table.getItems(USERS_TABLE_ID, { query: { referral_code: referralCode }, limit: 1 });
+                if (refResult.items.length > 0) {
+                  const ref = refResult.items[0];
+                  await table.updateItem(USERS_TABLE_ID, { _uid: ref._uid, _id: ref._id, referral_count: (ref.referral_count || 0) + 1, coin_balance: (ref.coin_balance || 0) + 500 });
                 }
-              } catch (error) {
-                console.error('Failed to update referrer:', error);
-              }
+              } catch {}
             }
-
-            // Create new user in database
-            const newUserData = {
+            await table.addItem(USERS_TABLE_ID, {
               _uid: userId,
               telegram_id: telegramUser.id.toString(),
               username: telegramUser.username || '',
               first_name: telegramUser.first_name,
               last_name: telegramUser.last_name || '',
               email: response.user.email,
-              coin_balance: initialBalance,
+              coin_balance: newBalance,
               join_date: new Date().toISOString(),
               referral_count: 0,
-              referral_code: referralCodeGenerated,
+              referral_code: referralCodeGen,
               referred_by: referredBy || '',
               is_admin: 0,
-            };
-
-            await table.addItem(USERS_TABLE_ID, newUserData);
-
-            // Fetch the newly created user to get _id
-            const createdUser = await table.getItems(USERS_TABLE_ID, {
-              query: {
-                _uid: userId,
-              },
-              limit: 1
             });
-
-            const dbUser = createdUser.items[0];
-
+            const created = await table.getItems(USERS_TABLE_ID, { query: { _uid: userId }, limit: 1 });
+            const dbUser = created.items[0];
             user = {
               uid: userId,
               email: response.user.email,
@@ -253,27 +230,18 @@ export const useAuthStore = create<AuthState>()(
               telegram_username: telegramUser.username,
               telegram_first_name: telegramUser.first_name,
               telegram_last_name: telegramUser.last_name,
-              coin_balance: initialBalance,
+              coin_balance: newBalance,
               join_date: dbUser.join_date,
               referral_count: 0,
-              referral_code: referralCodeGenerated,
+              referral_code: referralCodeGen,
               referred_by: referredBy,
               _id: dbUser._id,
             };
           }
-
-          set({ 
-            user, 
-            isAuthenticated: true, 
-            isLoading: false 
-          });
-
+          set({ user, isAuthenticated: true, isLoading: false });
         } catch (error: any) {
           console.error('OTP verification error:', error);
-          set({ 
-            error: error.message || 'Invalid verification code', 
-            isLoading: false 
-          });
+          set({ error: error.message || 'Invalid verification code', isLoading: false });
           throw error;
         }
       },
@@ -282,18 +250,10 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           await auth.logout();
-          set({ 
-            user: null, 
-            isAuthenticated: false, 
-            isLoading: false,
-            error: null 
-          });
+          set({ user: null, isAuthenticated: false, isLoading: false, error: null });
         } catch (error: any) {
           console.error('Logout error:', error);
-          set({ 
-            error: error.message || 'Failed to logout', 
-            isLoading: false 
-          });
+          set({ error: error.message || 'Failed to logout', isLoading: false });
         }
       },
 
@@ -301,22 +261,9 @@ export const useAuthStore = create<AuthState>()(
         const user = get().user;
         if (user && user._id) {
           const newBalance = user.coin_balance + amount;
-          
-          // Update in database
           try {
-            await table.updateItem(USERS_TABLE_ID, {
-              _uid: user.uid,
-              _id: user._id,
-              coin_balance: newBalance,
-            });
-
-            // Update local state
-            set({ 
-              user: { 
-                ...user, 
-                coin_balance: newBalance 
-              } 
-            });
+            await table.updateItem(USERS_TABLE_ID, { _uid: user.uid, _id: user._id, coin_balance: newBalance });
+            set({ user: { ...user, coin_balance: newBalance } });
           } catch (error) {
             console.error('Failed to update coin balance:', error);
             throw error;
@@ -324,28 +271,22 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      clearError: () => {
-        set({ error: null });
-      },
+      clearError: () => set({ error: null }),
 
       setHasJoinedChannel: (joined: boolean) => {
         set({ hasJoinedChannel: joined });
-        if (joined) {
-          localStorage.setItem('channel_joined', 'true');
-        }
+        if (joined) localStorage.setItem('channel_joined', 'true');
       },
 
-      completeWelcome: () => {
-        set({ showWelcome: false });
-      },
+      completeWelcome: () => set({ showWelcome: false }),
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ 
-        user: state.user, 
+      partialize: (state) => ({
+        user: state.user,
         isAuthenticated: state.isAuthenticated,
         hasJoinedChannel: state.hasJoinedChannel,
-        showWelcome: state.showWelcome
+        showWelcome: state.showWelcome,
       }),
     }
   )
