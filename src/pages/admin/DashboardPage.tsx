@@ -35,7 +35,7 @@ export default function DashboardPage() {
       // Toplam coin (canlı toplam)
       const totalCoins = usersRes.items.reduce((sum: number, u: any) => sum + (u.coin_balance || 0), 0);
 
-      // Aktif görev (statik 24 yerine canlı sayı)
+      // Aktif görev (canlı sayı)
       const tasksRes = await table.getItems('f41liqhtnp4x', { limit: 1000 });
       const activeTasks = tasksRes.items.filter((t: any) => t.status === 'active').length;
 
@@ -259,7 +259,7 @@ export default function DashboardPage() {
             </div>
           ))}
         </CardContent>
-      </div>
+      </Card>
     </div>
   );
 }
