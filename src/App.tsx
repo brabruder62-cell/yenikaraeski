@@ -23,27 +23,25 @@ import SponsorsPage from "@/pages/admin/SponsorsPage";
 import SettingsPage from "@/pages/admin/SettingsPage";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuthStore } from "@/store/auth-store";
+import { useAuthStore } from '@/store/auth-store';
 
-// Welcome wrapper: kanal kontrolü + yönlendirme
+// WelcomeWrapper: kanal kontrolü + kesin yönlendirme
 function WelcomeWrapper() {
   const navigate = useNavigate();
   const { completeWelcome } = useAuthStore();
 
   const handleWelcomeComplete = () => {
-    completeWelcome();          // store’u güncelle
-    navigate("/", { replace: true }); // ana sayfaya git
+    completeWelcome();                 // store’u güncelle
+    window.location.replace('/');      // tam sayfa yenilemesi = cache temizliği
   };
 
   return <WelcomePage onComplete={handleWelcomeComplete} />;
 }
 
-// Protected Route wrapper
+// ProtectedRoute
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { hasJoinedChannel, showWelcome } = useAuthStore();
-  if (showWelcome || !hasJoinedChannel) {
-    return <Navigate to="/welcome" replace />;
-  }
+  if (showWelcome || !hasJoinedChannel) return <Navigate to="/welcome" replace />;
   return <>{children}</>;
 }
 
@@ -51,17 +49,14 @@ function App() {
   const { initialize } = useAuthStore();
 
   useEffect(() => {
-    initialize(); // Telegram WebApp init + store kontrolü
+    initialize();
   }, [initialize]);
 
   return (
     <TooltipProvider>
       <BrowserRouter>
         <Routes>
-          {/* 1) Welcome ekranı → başarılı olunca ana sayfaya yönlendirir */}
           <Route path="/welcome" element={<WelcomeWrapper />} />
-
-          {/* 2) Korunan public rotalar */}
           <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
           <Route path="/games" element={<ProtectedRoute><GamesPage /></ProtectedRoute>} />
           <Route path="/games/limbo" element={<ProtectedRoute><LimboGame /></ProtectedRoute>} />
@@ -71,7 +66,6 @@ function App() {
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/store" element={<ProtectedRoute><UserStorePage /></ProtectedRoute>} />
 
-          {/* 3) Admin rotaları */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="dashboard" element={<DashboardPage />} />
@@ -85,7 +79,6 @@ function App() {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-          {/* 4) 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
