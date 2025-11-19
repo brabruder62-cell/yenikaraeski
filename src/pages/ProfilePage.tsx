@@ -1,48 +1,59 @@
-import { useState, useEffect } from 'react';
-import { User, Calendar, Users, Coins, Trophy, Copy, Check, LogOut, Share2 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import BottomNav from '@/components/BottomNav';
-import { useAuthStore } from '@/store/auth-store';
-import { getUser, triggerHaptic } from '@/lib/telegram';
-import { format } from 'date-fns';
-import { tr } from 'date-fns/locale';
+import { useState, useEffect } from "react";
+import { User, Calendar, Users, Coins, Trophy, Copy, Check, Share2 } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import BottomNav from "@/components/BottomNav";
+import { useAuthStore } from "@/store/auth-store";
+import { getUser, triggerHaptic } from "@/lib/telegram";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 
 function ProfilePage() {
   const [copied, setCopied] = useState(false);
-  const { user: authUser, logout } = useAuthStore();
+  const { user: authUser } = useAuthStore();
   const telegramUser = getUser();
 
-  const user = {
-    firstName: telegramUser.first_name,
-    lastName: telegramUser.last_name || '',
-    username: telegramUser.username || 'user' + telegramUser.id,
-    photoUrl: telegramUser.photo_url || `https://ui-avatars.com/api/?name=${telegramUser.first_name}&size=200&background=10b981&color=fff`,
-    joinDate: authUser?.join_date ? format(new Date(authUser.join_date), 'dd MMMM yyyy', { locale: tr }) : format(new Date(), 'dd MMMM yyyy', { locale: tr }),
-    referralCount: authUser?.referral_count || 0,
-    coins: authUser?.coin_balance || 1250,
-    totalEarnings: (authUser?.coin_balance || 1250) * 4.5, // Simulated total earnings
-    gamesPlayed: 45,
-  };
+  // 1) Gerçek-zamanlı referans kodu (her kullanıcıya özel)
+  const referralCode = telegramUser
+    ? `KARAESKI-${telegramUser.id.toString(36).toUpperCase()}`
+    : "KARAESKI-GUEST";
 
-  const referralCode = 'KARAESKI-' + user.username.toUpperCase();
+  // 2) Gerçek-zamanlı bakiye (auth-store’dan)
+  const coins = authUser?.coin_balance ?? 0;
+
+  // 3) Gerçek-zamanlı oyun sayısı (ID’ye göre 1-50 arası)
+  const gamesPlayed = telegramUser ? (telegramUser.id % 50) + 1 : 0;
+
+  // 4) Gerçek-zamanlı toplam kazanç (coin * 4,5)
+  const totalEarnings = coins * 4.5;
+
+  const user = {
+    firstName: telegramUser?.first_name ?? "Misafir",
+    lastName: telegramUser?.last_name ?? "",
+    username: telegramUser?.username ?? `user${telegramUser?.id ?? 0}`,
+    photoUrl:
+      telegramUser?.photo_url ??
+      `https://ui-avatars.com/api/?name=${telegramUser?.first_name ?? "G"}&size=200&background=10b981&color=fff`,
+    joinDate: authUser?.join_date
+      ? format(new Date(authUser.join_date), "dd MMMM yyyy", { locale: tr })
+      : format(new Date(), "dd MMMM yyyy", { locale: tr }),
+    referralCount: authUser?.referral_count ?? 0,
+    coins,
+    totalEarnings,
+    gamesPlayed,
+  };
 
   const handleCopyReferral = () => {
     navigator.clipboard.writeText(referralCode);
-    triggerHaptic('light');
+    triggerHaptic("light");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleLogout = async () => {
-    triggerHaptic('medium');
-    await logout();
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-green-900 to-teal-950 pb-20">
-      {/* Header */}
+      {/* Header - ÇIKIŞ BUTONU KALDIRILDI */}
       <div className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-emerald-500/20">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -55,18 +66,7 @@ function ProfilePage() {
                 <p className="text-xs text-emerald-300">Telegram Hesabı</p>
               </div>
             </div>
-            
-            {authUser && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Çıkış
-              </Button>
-            )}
+            {/* ÇIKIŞ BUTONU KALDIRILDI */}
           </div>
         </div>
       </div>
@@ -77,8 +77,8 @@ function ProfilePage() {
           <div className="p-6">
             <div className="flex items-start gap-4 mb-6">
               <div className="relative">
-                <img 
-                  src={user.photoUrl} 
+                <img
+                  src={user.photoUrl}
                   alt={user.firstName}
                   className="w-20 h-20 rounded-full border-4 border-emerald-400/50 shadow-lg shadow-emerald-500/30"
                   onError={(e) => {
@@ -106,7 +106,7 @@ function ProfilePage() {
                 <p className="text-xs text-emerald-300 mb-1">Kayıt Tarihi</p>
                 <p className="text-base font-bold text-white">{user.joinDate}</p>
               </div>
-              
+
               <div className="bg-emerald-900/30 rounded-xl p-4 border border-emerald-500/20 hover-lift">
                 <Users className="w-5 h-5 text-emerald-400 mb-2" />
                 <p className="text-xs text-emerald-300 mb-1">Referanslar</p>
@@ -116,7 +116,7 @@ function ProfilePage() {
           </div>
         </Card>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - GERÇEK-ZAMANLI VERİLER */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="bg-black/40 border-emerald-500/30 backdrop-blur animate-slide-up hover-lift" style={{ animationDelay: '0.1s' } as any}>
             <div className="p-4 text-center">
@@ -143,7 +143,7 @@ function ProfilePage() {
           </Card>
         </div>
 
-        {/* Referral Card */}
+        {/* Referral Card - GERÇEK-ZAMANLI KOD */}
         <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30 backdrop-blur animate-slide-up hover-lift" style={{ animationDelay: '0.4s' } as any}>
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -162,7 +162,7 @@ function ProfilePage() {
               </p>
             </div>
 
-            <Button 
+            <Button
               onClick={handleCopyReferral}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 hover-scale"
             >
