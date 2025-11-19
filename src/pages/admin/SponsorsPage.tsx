@@ -32,3 +32,5 @@ const handleLogoUpload = async (file: File) => {
     <p className="text-emerald-400 text-xs mt-1">✓ Yüklendi: {formData.logo_url}</p>
   )}
 </div>
+// SponsorsPage.tsx  –  en alt satır  (varsa zaten olanın üstüne yaz)
+export default SponsorsPage;
