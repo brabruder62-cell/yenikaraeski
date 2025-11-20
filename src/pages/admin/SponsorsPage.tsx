@@ -22,12 +22,11 @@ interface Sponsor {
   created_at: string;
 }
 
-/* 1) UPLOAD – native fetch (axios yok) */
+/*  Satır 25-46  –  kendi sunucuna upload  */
 const uploadLogo = async (file: File): Promise<string> => {
   if (file.size > 5 * 1024 * 1024) throw new Error('Max 5 MB');
   if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('JPEG/PNG only');
 
-  // min genişlik kontrolü
   return new Promise<string>((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -38,12 +37,18 @@ const uploadLogo = async (file: File): Promise<string> => {
       const body = new FormData();
       body.append('file', file);
 
-      fetch('https://api.devv.ai/api/v1/upload-file', {
-        method: 'POST',
-        body,
-      })
+      fetch('/api/upload', { method: 'POST', body })
         .then((res) => res.json())
         .then((json) => {
+          if (json.url) resolve(json.url);
+          else reject(new Error('Yükleme başarısız'));
+        })
+        .catch((err) => reject(err));
+    };
+    img.onerror = () => reject(new Error('Görsel okunamadı'));
+    img.src = URL.createObjectURL(file);
+  });
+};
           if (json.url) resolve(json.url);
           else reject(new Error('Yükleme başarısız'));
         })
