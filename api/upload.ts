@@ -1,4 +1,4 @@
-// pages/api/upload.ts - TAMAMEN YENİ KOD
+// pages/api/upload.ts - YENİ DOSYA OLUŞTUR
 import { put } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
@@ -15,7 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     console.log('📤 Upload başladı...');
-    
+
     // Buffer olarak veriyi oku
     const chunks: Buffer[] = [];
     for await (const chunk of req) {
@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Dosya boyutu 5MB üzerinde' });
     }
 
-    // Basit dosya tipi kontrolü
+    // Dosya tipi kontrolü
     const signature = buffer.toString('hex', 0, 4);
     let extension = 'png';
     
@@ -45,7 +45,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const filename = `sponsors/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${extension}`;
 
     console.log('📁 Dosya adı:', filename);
-    console.log('🔑 Token kontrol:', !!process.env.BLOB_READ_WRITE_TOKEN);
 
     // Vercel Blob'a yükle
     const { url } = await put(filename, buffer, {
