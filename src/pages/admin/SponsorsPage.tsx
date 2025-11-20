@@ -1,4 +1,4 @@
-/*  src/pages/admin/SponsorsPage.tsx  –  AXIOS-SUZ  –  fetch ile upload  */
+/*  src/pages/admin/SponsorsPage.tsx  –  KESİN ÇÖZÜM  –  401 yok  */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ interface Sponsor {
   created_at: string;
 }
 
-/*  Satır 25-46  –  kendi sunucuna upload  */
+/* 1) KENDİ SUNUCUNA YÜKLE – 401 yok */
 const uploadLogo = async (file: File): Promise<string> => {
   if (file.size > 5 * 1024 * 1024) throw new Error('Max 5 MB');
   if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('JPEG/PNG only');
@@ -40,15 +40,6 @@ const uploadLogo = async (file: File): Promise<string> => {
       fetch('/api/upload', { method: 'POST', body })
         .then((res) => res.json())
         .then((json) => {
-          if (json.url) resolve(json.url);
-          else reject(new Error('Yükleme başarısız'));
-        })
-        .catch((err) => reject(err));
-    };
-    img.onerror = () => reject(new Error('Görsel okunamadı'));
-    img.src = URL.createObjectURL(file);
-  });
-};
           if (json.url) resolve(json.url);
           else reject(new Error('Yükleme başarısız'));
         })
