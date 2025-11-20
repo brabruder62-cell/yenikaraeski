@@ -5,9 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Edit2, Trash2, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { table } from '@devvai/devv-code-backend';
 import { useAuthStore } from '@/store/auth-store';
 import LoadingSpinner from '@/components/LoadingSpinner';
+
+/* 1) KENDİ SUNUCUMUZA GİDEN YARDIMCI */
+const API_BASE = '/api';
+async function updateSponsor(id: string, data: any) {
+  const res = await fetch(`${API_BASE}/sponsors/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...data }),
+  });
+  if (!res.ok) throw new Error('Güncelleme başarısız');
+  return res.json();
+}
+async function addSponsor(data: any) {
+  const res = await fetch(`${API_BASE}/sponsors/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Ekleme başarısız');
+  return res.json();
+}
 
 const SPONSORS_TABLE_ID = 'f41liqhw5rsw';
 
@@ -22,27 +42,19 @@ interface Sponsor {
   created_at: string;
 }
 
-/* 1) KENDİ SUNUCUNA YÜKLE – 401 yok */
+/* 2) LOGO YÜKLEME – KENDİ /api/upload  */
 const uploadLogo = async (file: File): Promise<string> => {
   if (file.size > 5 * 1024 * 1024) throw new Error('Max 5 MB');
   if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('JPEG/PNG only');
-
   return new Promise<string>((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      if (img.width < 200) {
-        reject(new Error('Logo en az 200 piksel genişlikte olmalı'));
-        return;
-      }
+      if (img.width < 200) { reject(new Error('Logo en az 200 piksel genişlikte olmalı')); return; }
       const body = new FormData();
       body.append('file', file);
-
       fetch('/api/upload', { method: 'POST', body })
         .then((res) => res.json())
-        .then((json) => {
-          if (json.url) resolve(json.url);
-          else reject(new Error('Yükleme başarısız'));
-        })
+        .then((json) => { if (json.url) resolve(json.url); else reject(new Error('Yükleme başarısız')); })
         .catch((err) => reject(err));
     };
     img.onerror = () => reject(new Error('Görsel okunamadı'));
@@ -66,25 +78,19 @@ export default function SponsorsPage() {
     order: 1,
   });
 
-  useEffect(() => {
-    loadSponsors();
-  }, []);
+  useEffect(() => { loadSponsors(); }, []);
 
   const loadSponsors = async () => {
     try {
       setIsLoading(true);
-      const result = await table.getItems(SPONSORS_TABLE_ID, {
-        limit: 100,
-        sort: 'order',
-        order: 'asc',
-      });
+      /* DEVV.AI TABLE – SADECE OKUMA (GET) */
+      const { table } = await import('@devvai/devv-code-backend');
+      const result = await table.getItems(SPONSORS_TABLE_ID, { limit: 100, sort: 'order', order: 'asc' });
       setSponsors(result.items as Sponsor[]);
     } catch (error: any) {
       console.error('Load sponsors error:', error);
       toast({ title: 'Yükleme Hatası', description: 'Sponsorlar yüklenemedi', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
+    } finally { setIsLoading(false); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,16 +98,14 @@ export default function SponsorsPage() {
     if (!user) return;
     try {
       if (editingSponsor) {
-        await table.updateItem(SPONSORS_TABLE_ID, { _uid: editingSponsor._uid, _id: editingSponsor._id, ...formData });
+        await updateSponsor(editingSponsor._id, formData);
         toast({ title: 'Başarılı', description: 'Sponsor güncellendi' });
       } else {
-        await table.addItem(SPONSORS_TABLE_ID, { _uid: user.uid, ...formData, created_at: new Date().toISOString() });
+        await addSponsor({ _uid: user.uid, ...formData, created_at: new Date().toISOString() });
         toast({ title: 'Başarılı', description: 'Sponsor eklendi' });
       }
       setFormData({ name: '', logo_url: '', redirect_url: '', status: 'active', order: 1 });
-      setShowAddForm(false);
-      setEditingSponsor(null);
-      loadSponsors();
+      setShowAddForm(false); setEditingSponsor(null); loadSponsors();
     } catch (error: any) {
       console.error('Save sponsor error:', error);
       toast({ title: 'Hata', description: error.message || 'İşlem başarısız', variant: 'destructive' });
@@ -117,9 +121,9 @@ export default function SponsorsPage() {
   const handleDelete = async (sponsor: Sponsor) => {
     if (!confirm('Bu sponsoru silmek istediğinize emin misiniz?')) return;
     try {
+      const { table } = await import('@devvai/devv-code-backend');
       await table.deleteItem(SPONSORS_TABLE_ID, { _uid: sponsor._uid, _id: sponsor._id });
-      toast({ title: 'Silindi', description: 'Sponsor başarıyla silindi' });
-      loadSponsors();
+      toast({ title: 'Silindi', description: 'Sponsor başarıyla silindi' }); loadSponsors();
     } catch (error: any) {
       console.error('Delete sponsor error:', error);
       toast({ title: 'Hata', description: error.message || 'Silme başarısız', variant: 'destructive' });
@@ -127,18 +131,11 @@ export default function SponsorsPage() {
   };
 
   const handleCancel = () => {
-    setShowAddForm(false);
-    setEditingSponsor(null);
+    setShowAddForm(false); setEditingSponsor(null);
     setFormData({ name: '', logo_url: '', redirect_url: '', status: 'active', order: 1 });
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <LoadingSpinner size="lg" text="Sponsorlar yükleniyor..." />
-      </div>
-    );
-  }
+  if (isLoading) return <div className="flex items-center justify-center h-[60vh]"><LoadingSpinner size="lg" text="Sponsorlar yükleniyor..." /></div>;
 
   return (
     <div className="p-8 space-y-6 bg-black text-white min-h-screen">
@@ -154,9 +151,7 @@ export default function SponsorsPage() {
 
       {showAddForm && (
         <Card className="bg-black/40 border-emerald-500/30 backdrop-blur animate-slide-up">
-          <CardHeader>
-            <CardTitle className="text-white">{editingSponsor ? 'Sponsor Düzenle' : 'Yeni Sponsor Ekle'}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-white">{editingSponsor ? 'Sponsor Düzenle' : 'Yeni Sponsor Ekle'}</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
