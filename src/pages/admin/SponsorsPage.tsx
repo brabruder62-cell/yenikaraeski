@@ -22,10 +22,33 @@ interface Sponsor {
   created_at: string;
 }
 
-/* 1) KENDİ SUNUCUNA YÜKLE – 401 yok */
+/*  2) YENİ UPLOAD – Vercel Blob  */
 const uploadLogo = async (file: File): Promise<string> => {
   if (file.size > 5 * 1024 * 1024) throw new Error('Max 5 MB');
   if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('JPEG/PNG only');
+
+  return new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      if (img.width < 200) {
+        reject(new Error('Logo en az 200 piksel genişlikte olmalı'));
+        return;
+      }
+      const body = new FormData();
+      body.append('file', file);
+
+      fetch('/api/upload', { method: 'POST', body })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.url) resolve(json.url);
+          else reject(new Error('Yükleme başarısız'));
+        })
+        .catch((err) => reject(err));
+    };
+    img.onerror = () => reject(new Error('Görsel okunamadı'));
+    img.src = URL.createObjectURL(file);
+  });
+};
 
   return new Promise<string>((resolve, reject) => {
     const img = new Image();
