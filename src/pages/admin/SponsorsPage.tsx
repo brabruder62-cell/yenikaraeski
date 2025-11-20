@@ -1,4 +1,4 @@
-/*  src/pages/admin/SponsorsPage.tsx  –  HATASIZ  –  export + upload fixed  */
+/*  src/pages/admin/SponsorsPage.tsx  –  AXIOS-SUZ  –  fetch ile upload  */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 import { table } from '@devvai/devv-code-backend';
 import { useAuthStore } from '@/store/auth-store';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import axios from 'axios';
 
 const SPONSORS_TABLE_ID = 'f41liqhw5rsw';
 
@@ -23,7 +22,7 @@ interface Sponsor {
   created_at: string;
 }
 
-/* 1) UPLOAD – doğrudan API (uploadFile yok) */
+/* 1) UPLOAD – native fetch (axios yok) */
 const uploadLogo = async (file: File): Promise<string> => {
   if (file.size > 5 * 1024 * 1024) throw new Error('Max 5 MB');
   if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('JPEG/PNG only');
@@ -38,11 +37,16 @@ const uploadLogo = async (file: File): Promise<string> => {
       }
       const body = new FormData();
       body.append('file', file);
-      axios
-        .post('https://api.devv.ai/api/v1/upload-file', body, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+
+      fetch('https://api.devv.ai/api/v1/upload-file', {
+        method: 'POST',
+        body,
+      })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.url) resolve(json.url);
+          else reject(new Error('Yükleme başarısız'));
         })
-        .then((res) => resolve(res.data.url))
         .catch((err) => reject(err));
     };
     img.onerror = () => reject(new Error('Görsel okunamadı'));
