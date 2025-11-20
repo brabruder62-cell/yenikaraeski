@@ -1,32 +1,13 @@
-/*  api/upload.ts  */
-import { put } from '@vercel/blob';
+/*  api/sponsors/update.ts  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import multiparty from 'multiparty';
-import fs from 'fs';
-
-export const config = { api: { bodyParser: false } };
 
 export default async (req: VercelRequest, res: VercelResponse) => {
-if (req.method !== "POST") return res.status(405).end();
-
-  const form = new multiparty.Form();
-  form.parse(req, async (err, fields, files) => {
-    if (err || !files.file || !files.file[0])
-      return res.status(400).json({ error: 'Dosya bulunamadı' });
-
-    const { path, originalFilename } = files.file[0];
-    const ext = originalFilename?.split('.').pop() || 'png';
-
-    try {
-      const { url } = await put(
-        `uploads/${Date.now()}.${ext}`,
-        fs.createReadStream(path),
-        { access: 'public', token: process.env.BLOB_READ_WRITE_TOKEN! }
-      );
-      return res.json({ url });
-    } catch (e: any) {
-      console.error('Blob hatası:', e);
-      return res.status(500).json({ error: 'Yükleme başarısız' });
-    }
-  });
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    console.log('Sponsor güncellendi:', body);
+    return res.status(200).json({ success: true, id: body.id || body._id });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Güncelleme hatası' });
+  }
 };
