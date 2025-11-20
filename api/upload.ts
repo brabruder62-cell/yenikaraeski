@@ -7,7 +7,7 @@ import fs from 'fs';
 export const config = { api: { bodyParser: false } };
 
 export default async (req: VercelRequest, res: VercelResponse) => {
-  if (req.method !== 'POST') return res.status(405).end();
+if (req.method !== "POST") return res.status(405).end();
 
   const form = new multiparty.Form();
   form.parse(req, async (err, fields, files) => {
