@@ -2,6 +2,7 @@
 import { put } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import multiparty from 'multiparty';
+import fs from 'fs';
 
 export const config = { api: { bodyParser: false } };
 
@@ -24,7 +25,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
       );
       return res.json({ url });
     } catch (e: any) {
-      console.error(e);
+      console.error('Blob hatası:', e);
       return res.status(500).json({ error: 'Yükleme başarısız' });
     }
   });
