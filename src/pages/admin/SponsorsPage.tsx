@@ -1,4 +1,4 @@
-/*  src/pages/admin/SponsorsPage.tsx  –  KESİN ÇÖZÜM  –  BASE64  */
+/*  src/pages/admin/SponsorsPage.tsx  –  TEST VERSİYONU  */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,27 +7,6 @@ import { Plus, Edit2, Trash2, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth-store';
 import LoadingSpinner from '@/components/LoadingSpinner';
-
-/* 1) KENDİ SUNUCUMUZA GİDEN YARDIMCI */
-const API_BASE = '/api';
-async function updateSponsor(id: string, data: any) {
-  const res = await fetch(`${API_BASE}/sponsors/update`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, ...data }),
-  });
-  if (!res.ok) throw new Error('Güncelleme başarısız');
-  return res.json();
-}
-async function addSponsor(data: any) {
-  const res = await fetch(`${API_BASE}/sponsors/update`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error('Ekleme başarısız');
-  return res.json();
-}
 
 const SPONSORS_TABLE_ID = 'f41liqhw5rsw';
 
@@ -42,35 +21,33 @@ interface Sponsor {
   created_at: string;
 }
 
-/* 2) LOGO YÜKLEME – KESİN BASE64 ÇÖZÜMÜ  */
-const uploadLogo = async (file: File): Promise<string> => {
-  if (file.size > 2 * 1024 * 1024) throw new Error('Max 2 MB');
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    throw new Error('Sadece JPEG, PNG ve WebP dosyaları yüklenebilir');
+/* 1) ÖNCE TEST - DEVV.AI FONKSİYONLARINI KONTROL ET */
+const testDevvAIFunctions = async () => {
+  try {
+    const { table } = await import('@devvai/devv-code-backend');
+    console.log('✅ DEVV.AI table modülü yüklendi');
+    
+    // Mevcut item'ları getir
+    const items = await table.getItems(SPONSORS_TABLE_ID, { limit: 10 });
+    console.log('📋 Mevcut sponsorlar:', items);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ DEVV.AI hatası:', error);
+    return false;
   }
-  
+};
+
+/* 2) BASİT BASE64 UPLOAD */
+const uploadLogo = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    
-    img.onload = () => {
-      if (img.width < 200) {
-        reject(new Error('Logo en az 200 piksel genişlikte olmalı'));
-        return;
-      }
-      
-      // Base64'e çevir - OFFLINE ÇALIŞIR
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64Url = e.target?.result as string;
-        console.log('✅ Base64 logo hazır!');
-        resolve(base64Url);
-      };
-      reader.onerror = () => reject(new Error('Dosya okunamadı'));
-      reader.readAsDataURL(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Url = e.target?.result as string;
+      resolve(base64Url);
     };
-    
-    img.onerror = () => reject(new Error('Görsel yüklenemedi'));
-    img.src = URL.createObjectURL(file);
+    reader.onerror = () => reject(new Error('Dosya okunamadı'));
+    reader.readAsDataURL(file);
   });
 };
 
@@ -90,12 +67,15 @@ export default function SponsorsPage() {
     order: 1,
   });
 
-  useEffect(() => { loadSponsors(); }, []);
+  useEffect(() => { 
+    loadSponsors();
+    // DEVV.AI fonksiyonlarını test et
+    testDevvAIFunctions();
+  }, []);
 
   const loadSponsors = async () => {
     try {
       setIsLoading(true);
-      /* DEVV.AI TABLE – SADECE OKUMA (GET) */
       const { table } = await import('@devvai/devv-code-backend');
       const result = await table.getItems(SPONSORS_TABLE_ID, { limit: 100, sort: 'order', order: 'asc' });
       setSponsors(result.items as Sponsor[]);
@@ -108,16 +88,41 @@ export default function SponsorsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
     try {
+      const { table } = await import('@devvai/devv-code-backend');
+      
       if (editingSponsor) {
-        await updateSponsor(editingSponsor._id, formData);
+        // GÜNCELLEME
+        await table.updateItem(SPONSORS_TABLE_ID, { 
+          _id: editingSponsor._id, 
+          _uid: editingSponsor._uid,
+          name: formData.name,
+          logo_url: formData.logo_url,
+          redirect_url: formData.redirect_url,
+          status: formData.status,
+          order: formData.order
+        });
         toast({ title: 'Başarılı', description: 'Sponsor güncellendi' });
       } else {
-        await addSponsor({ _uid: user.uid, ...formData, created_at: new Date().toISOString() });
+        // YENİ EKLEME
+        await table.createItem(SPONSORS_TABLE_ID, {
+          _uid: user.uid,
+          name: formData.name,
+          logo_url: formData.logo_url,
+          redirect_url: formData.redirect_url,
+          status: formData.status,
+          order: formData.order,
+          created_at: new Date().toISOString()
+        });
         toast({ title: 'Başarılı', description: 'Sponsor eklendi' });
       }
+      
       setFormData({ name: '', logo_url: '', redirect_url: '', status: 'active', order: 1 });
-      setShowAddForm(false); setEditingSponsor(null); loadSponsors();
+      setShowAddForm(false); 
+      setEditingSponsor(null); 
+      loadSponsors();
+      
     } catch (error: any) {
       console.error('Save sponsor error:', error);
       toast({ title: 'Hata', description: error.message || 'İşlem başarısız', variant: 'destructive' });
@@ -126,7 +131,13 @@ export default function SponsorsPage() {
 
   const handleEdit = (sponsor: Sponsor) => {
     setEditingSponsor(sponsor);
-    setFormData({ name: sponsor.name, logo_url: sponsor.logo_url, redirect_url: sponsor.redirect_url, status: sponsor.status, order: sponsor.order });
+    setFormData({ 
+      name: sponsor.name, 
+      logo_url: sponsor.logo_url, 
+      redirect_url: sponsor.redirect_url, 
+      status: sponsor.status, 
+      order: sponsor.order 
+    });
     setShowAddForm(true);
   };
 
@@ -135,7 +146,8 @@ export default function SponsorsPage() {
     try {
       const { table } = await import('@devvai/devv-code-backend');
       await table.deleteItem(SPONSORS_TABLE_ID, { _uid: sponsor._uid, _id: sponsor._id });
-      toast({ title: 'Silindi', description: 'Sponsor başarıyla silindi' }); loadSponsors();
+      toast({ title: 'Silindi', description: 'Sponsor başarıyla silindi' }); 
+      loadSponsors();
     } catch (error: any) {
       console.error('Delete sponsor error:', error);
       toast({ title: 'Hata', description: error.message || 'Silme başarısız', variant: 'destructive' });
@@ -143,7 +155,8 @@ export default function SponsorsPage() {
   };
 
   const handleCancel = () => {
-    setShowAddForm(false); setEditingSponsor(null);
+    setShowAddForm(false); 
+    setEditingSponsor(null);
     setFormData({ name: '', logo_url: '', redirect_url: '', status: 'active', order: 1 });
   };
 
@@ -188,7 +201,7 @@ export default function SponsorsPage() {
                 </div>
               </div>
 
-              {/* LOGO UPLOAD – BASE64 KESİN ÇÖZÜM */}
+              {/* LOGO UPLOAD */}
               <div className="space-y-2">
                 <label className="text-sm text-emerald-300">Logo</label>
                 <input
@@ -203,18 +216,17 @@ export default function SponsorsPage() {
                       toast({ title: 'Logo yüklendi!' });
                     } catch (err: any) {
                       toast({ title: err.message, variant: 'destructive' });
-                      console.error(err);
                     }
                   }}
                   className="block w-full text-sm text-emerald-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
                 />
-                {formData.logo_url && (
-                  <p className="text-emerald-400 text-xs mt-1">✓ Yüklendi: {formData.logo_url.substring(0, 50)}...</p>
-                )}
+                {formData.logo_url && <p className="text-emerald-400 text-xs mt-1">✓ Yüklendi</p>}
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500">{editingSponsor ? 'Güncelle' : 'Ekle'}</Button>
+                <Button type="submit" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500">
+                  {editingSponsor ? 'Güncelle' : 'Ekle'}
+                </Button>
                 <Button type="button" variant="outline" onClick={handleCancel}>İptal</Button>
               </div>
             </form>
