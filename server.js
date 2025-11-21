@@ -1,23 +1,28 @@
-// server.js - Vite + React için Railway sunucusu
-const express = require('express');
-const path = require('path');
+// server.js - ES Module formatında
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+console.log('🚀 Server başlatılıyor...');
 
-// Static files - Vite build edilmiş dosyalarını servis et
+// Static files
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Tüm routeları index.html'e yönlendir (SPA için)
+// Tüm routeları index.html'e yönlendir
 app.get('*', (req, res) => {
+  console.log('📄 Index.html servis ediliyor');
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// Health check endpoint - Railway için önemli
+// Health check
 app.get('/health', (req, res) => {
+  console.log('❤️ Health check çağrıldı');
   res.status(200).json({ 
     status: 'OK', 
     message: 'Admin panel çalışıyor!',
@@ -25,19 +30,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Sunucuyu başlat
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`🚀 Admin panel ${port} portunda çalışıyor!`);
-  console.log(`📊 Health check: http://localhost:${port}/health`);
-});
-
-// Hata yönetimi
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
+  console.log(`📊 Health check: http://0.0.0.0:${port}/health`);
 });
