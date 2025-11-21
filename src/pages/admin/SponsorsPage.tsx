@@ -1,14 +1,16 @@
-/*  src/pages/admin/SponsorsPage.tsx  –  TEST VERSİYONU  */
+/*  src/pages/admin/SponsorsPage.tsx  –  CLOUDINARY VERSİYONU  */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit2, Trash2, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, ExternalLink, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth-store';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 const SPONSORS_TABLE_ID = 'f41liqhw5rsw';
+const CLOUDINARY_CLOUD_NAME = 'dpmuuw8zi';
+const CLOUDINARY_UPLOAD_PRESET = 'admin_uploads';
 
 interface Sponsor {
   _id: string;
@@ -21,39 +23,42 @@ interface Sponsor {
   created_at: string;
 }
 
-/* 1) ÖNCE TEST - DEVV.AI FONKSİYONLARINI KONTROL ET */
-const testDevvAIFunctions = async () => {
+/* CLOUDINARY GÖRSEL YÜKLEME */
+const uploadToCloudinary = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  
   try {
-    const { table } = await import('@devvai/devv-code-backend');
-    console.log('✅ DEVV.AI table modülü yüklendi');
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    );
     
-    // Mevcut item'ları getir
-    const items = await table.getItems(SPONSORS_TABLE_ID, { limit: 10 });
-    console.log('📋 Mevcut sponsorlar:', items);
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
     
-    return true;
-  } catch (error) {
-    console.error('❌ DEVV.AI hatası:', error);
-    return false;
+    const data = await response.json();
+    
+    if (data.secure_url) {
+      return data.secure_url;
+    } else {
+      throw new Error('Upload response missing URL');
+    }
+  } catch (error: any) {
+    console.error('Cloudinary upload error:', error);
+    throw new Error(`Görsel yükleme başarısız: ${error.message}`);
   }
-};
-
-/* 2) BASİT BASE64 UPLOAD */
-const uploadLogo = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64Url = e.target?.result as string;
-      resolve(base64Url);
-    };
-    reader.onerror = () => reject(new Error('Dosya okunamadı'));
-    reader.readAsDataURL(file);
-  });
 };
 
 export default function SponsorsPage() {
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
   const { toast } = useToast();
@@ -69,8 +74,6 @@ export default function SponsorsPage() {
 
   useEffect(() => { 
     loadSponsors();
-    // DEVV.AI fonksiyonlarını test et
-    testDevvAIFunctions();
   }, []);
 
   const loadSponsors = async () => {
@@ -83,6 +86,34 @@ export default function SponsorsPage() {
       console.error('Load sponsors error:', error);
       toast({ title: 'Yükleme Hatası', description: 'Sponsorlar yüklenemedi', variant: 'destructive' });
     } finally { setIsLoading(false); }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    
+    // Dosya tipi kontrolü
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Hata', description: 'Sadece görsel dosyaları yükleyebilirsiniz', variant: 'destructive' });
+      return;
+    }
+
+    // Dosya boyutu kontrolü (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Hata', description: 'Dosya boyutu 5MB\'dan küçük olmalı', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const imageUrl = await uploadToCloudinary(file);
+      setFormData({ ...formData, logo_url: imageUrl });
+      toast({ title: 'Başarılı', description: 'Logo Cloudinary\'e yüklendi!' });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({ title: 'Yükleme Hatası', description: error.message, variant: 'destructive' });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -201,31 +232,47 @@ export default function SponsorsPage() {
                 </div>
               </div>
 
-              {/* LOGO UPLOAD */}
+              {/* CLOUDINARY LOGO UPLOAD */}
               <div className="space-y-2">
-                <label className="text-sm text-emerald-300">Logo</label>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      const url = await uploadLogo(file);
-                      setFormData({ ...formData, logo_url: url });
-                      toast({ title: 'Logo yüklendi!' });
-                    } catch (err: any) {
-                      toast({ title: err.message, variant: 'destructive' });
-                    }
-                  }}
-                  className="block w-full text-sm text-emerald-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
-                />
-                {formData.logo_url && <p className="text-emerald-400 text-xs mt-1">✓ Yüklendi</p>}
+                <label className="text-sm text-emerald-300">Logo (Cloudinary)</label>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) await handleFileUpload(file);
+                    }}
+                    disabled={uploading}
+                    className="block flex-1 text-sm text-emerald-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 disabled:opacity-50"
+                  />
+                  {uploading && <LoadingSpinner size="sm" />}
+                </div>
+                
+                {formData.logo_url && (
+                  <div className="mt-2 p-3 bg-emerald-500/10 rounded border border-emerald-500/20">
+                    <p className="text-emerald-400 text-sm mb-2">✓ Logo yüklendi:</p>
+                    <img 
+                      src={formData.logo_url} 
+                      alt="Preview" 
+                      className="h-20 object-contain rounded"
+                    />
+                    <p className="text-xs text-emerald-300 mt-1 truncate">{formData.logo_url}</p>
+                  </div>
+                )}
+                
+                <p className="text-xs text-gray-400">
+                  Desteklenen formatlar: JPEG, PNG, WebP, GIF • Maksimum boyut: 5MB
+                </p>
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500">
-                  {editingSponsor ? 'Güncelle' : 'Ekle'}
+                <Button 
+                  type="submit" 
+                  disabled={!formData.logo_url || uploading}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
+                >
+                  {uploading ? 'Yükleniyor...' : (editingSponsor ? 'Güncelle' : 'Ekle')}
                 </Button>
                 <Button type="button" variant="outline" onClick={handleCancel}>İptal</Button>
               </div>
