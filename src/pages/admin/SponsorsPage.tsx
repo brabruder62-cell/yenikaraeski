@@ -1,4 +1,4 @@
-/*  src/pages/admin/SponsorsPage.tsx  –  KESİN ÇÖZÜM  –  401 yok  */
+/*  src/pages/admin/SponsorsPage.tsx  –  KESİN ÇÖZÜM  –  BASE64  */
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,49 +42,35 @@ interface Sponsor {
   created_at: string;
 }
 
-/* 2) LOGO YÜKLEME – GÜNCELLENMİŞ VERSİYON  */
+/* 2) LOGO YÜKLEME – KESİN BASE64 ÇÖZÜMÜ  */
 const uploadLogo = async (file: File): Promise<string> => {
-  if (file.size > 5 * 1024 * 1024) throw new Error('Max 5 MB');
-  if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('JPEG/PNG only');
+  if (file.size > 2 * 1024 * 1024) throw new Error('Max 2 MB');
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new Error('Sadece JPEG, PNG ve WebP dosyaları yüklenebilir');
+  }
   
-  return new Promise<string>(async (resolve, reject) => {
-    try {
-      const img = new Image();
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    
+    img.onload = () => {
+      if (img.width < 200) {
+        reject(new Error('Logo en az 200 piksel genişlikte olmalı'));
+        return;
+      }
       
-      img.onload = async () => {
-        if (img.width < 200) {
-          reject(new Error('Logo en az 200 piksel genişlikte olmalı'));
-          return;
-        }
-
-        // FormData kullan
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData, // FormData gönder
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Upload failed: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        if (data.url) {
-          resolve(data.url);
-        } else {
-          reject(new Error('URL dönülmedi'));
-        }
+      // Base64'e çevir - OFFLINE ÇALIŞIR
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64Url = e.target?.result as string;
+        console.log('✅ Base64 logo hazır!');
+        resolve(base64Url);
       };
-
-      img.onerror = () => reject(new Error('Görsel okunamadı'));
-      img.src = URL.createObjectURL(file);
-      
-    } catch (error: any) {
-      reject(error);
-    }
+      reader.onerror = () => reject(new Error('Dosya okunamadı'));
+      reader.readAsDataURL(file);
+    };
+    
+    img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+    img.src = URL.createObjectURL(file);
   });
 };
 
@@ -202,12 +188,12 @@ export default function SponsorsPage() {
                 </div>
               </div>
 
-              {/* LOGO UPLOAD – 401 giderildi */}
+              {/* LOGO UPLOAD – BASE64 KESİN ÇÖZÜM */}
               <div className="space-y-2">
                 <label className="text-sm text-emerald-300">Logo</label>
                 <input
                   type="file"
-                  accept="image/jpeg,image/png"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
@@ -223,7 +209,7 @@ export default function SponsorsPage() {
                   className="block w-full text-sm text-emerald-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-emerald-600 file:text-white hover:file:bg-emerald-500"
                 />
                 {formData.logo_url && (
-                  <p className="text-emerald-400 text-xs mt-1">✓ Yüklendi: {formData.logo_url}</p>
+                  <p className="text-emerald-400 text-xs mt-1">✓ Yüklendi: {formData.logo_url.substring(0, 50)}...</p>
                 )}
               </div>
 
