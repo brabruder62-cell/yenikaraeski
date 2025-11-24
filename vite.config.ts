@@ -1,17 +1,18 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
+import { componentTagger } from "@devvai/devv-tagger-plugin"
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [componentTagger(), react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {
-    // Optimize build performance for Vercel
+    // Optimize build performance for Cloudflare Pages
     target: "es2015",
     minify: "esbuild",
     cssMinify: true,
@@ -34,11 +35,5 @@ export default defineConfig({
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Set output directory for Vercel
-    outDir: "dist",
   },
-  // Vercel deployment optimization
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom']
-  }
 })
