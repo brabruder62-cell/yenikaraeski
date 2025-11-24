@@ -1,8 +1,4 @@
 {
-  "installCommand": "npm install && chmod +x ./node_modules/.bin/vite",
-  "buildCommand": "./node_modules/.bin/vite build",
-  "framework": "vite",
-  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
