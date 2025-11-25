@@ -4,12 +4,10 @@ import { Card } from "@/components/ui/card";
 import { ExternalLink, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Confetti from "@/components/Confetti";
-import { table } from "@devvai/devv-code-backend";
 
 // TELEGRAM CHANNEL CONFIG
 const DEFAULT_CHANNEL_USERNAME = "eserkaraeskichat";
 const DEFAULT_BOT_TOKEN = "8414952935:AAH1sPR2wNj-IwzDsEHlAfFumL9x3cu_orU";
-const APP_SETTINGS_TABLE_ID = "f41liquxmigw";
 
 interface TelegramConfig {
   channelUsername: string;
@@ -41,15 +39,8 @@ export default function WelcomePage({ onComplete }: WelcomePageProps) {
 
   const loadSettings = async () => {
     try {
-      const result = await table.getItems(APP_SETTINGS_TABLE_ID, { limit: 100 });
-      result.items.forEach((setting: any) => {
-        if (setting.key === "telegram_channel_username" && setting.value) {
-          telegramConfig.channelUsername = setting.value;
-        }
-        if (setting.key === "telegram_bot_token" && setting.value) {
-          telegramConfig.botToken = setting.value;
-        }
-      });
+      // Database bağlantısı olmadan sabit ayarları kullan
+      console.log("Settings loaded from defaults");
     } catch (error) {
       console.error("Failed to load settings:", error);
     }
