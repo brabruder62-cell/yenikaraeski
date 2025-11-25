@@ -3,7 +3,6 @@ import { Coins, Gift, Users, Trophy, Zap, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { table } from '@devvai/devv-code-backend';
 import { useAuthStore } from '@/store/auth-store';
 import BottomNav from '@/components/BottomNav';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -11,8 +10,6 @@ import SkeletonCard from '@/components/SkeletonCard';
 import Confetti from '@/components/Confetti';
 import CoinAnimation from '@/components/CoinAnimation';
 import { triggerHaptic, triggerNotification } from '@/lib/telegram';
-
-const SPONSORS_TABLE_ID = 'f41liqhw5rsw';
 
 interface Sponsor {
   _id: string;
@@ -34,7 +31,7 @@ function HomePage() {
     localStorage.getItem('lastDailyClaim')
   );
 
-  // GERÇEK-ZAMANLI BAKİYE (Telegram ID’ye göre 0-9999 arası)
+  // GERÇEK-ZAMANLI BAKİYE (Telegram ID'ye göre 0-9999 arası)
   const coins = user?.coin_balance ?? 0;
 
   useEffect(() => {
@@ -44,15 +41,26 @@ function HomePage() {
   const loadSponsors = async () => {
     try {
       setIsLoadingSponsors(true);
-      const result = await table.getItems(SPONSORS_TABLE_ID, {
-        limit: 20,
-        sort: 'order',
-        order: 'asc',
-      });
-      const activeSponsors = result.items.filter(
-        (s: any) => s.status === 'active'
-      ) as Sponsor[];
-      setSponsors(activeSponsors);
+      // Database bağlantısı olmadan örnek sponsorlar
+      const exampleSponsors: Sponsor[] = [
+        {
+          _id: '1',
+          name: 'Winza Bet',
+          logo_url: 'https://static.devv.ai/f4g7d9pnl9ts.png',
+          redirect_url: 'https://t.me/eserkaraeskichat',
+          status: 'active',
+          order: 1
+        },
+        {
+          _id: '2', 
+          name: 'Premium Casino',
+          logo_url: 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=400',
+          redirect_url: 'https://t.me/eserkaraeskichat',
+          status: 'active',
+          order: 2
+        }
+      ];
+      setSponsors(exampleSponsors);
     } catch (error) {
       console.error('Load sponsors error:', error);
     } finally {
