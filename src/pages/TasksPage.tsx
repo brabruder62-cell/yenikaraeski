@@ -13,11 +13,7 @@ import SkeletonCard from '@/components/SkeletonCard'
 import Confetti from '@/components/Confetti'
 import CoinAnimation from '@/components/CoinAnimation'
 import { useAuthStore } from '@/store/auth-store'
-import { table } from '@devvai/devv-code-backend'
 import { triggerHaptic, triggerNotification } from '@/lib/telegram'
-
-const TASKS_TABLE_ID = 'f41liqhw5lhd'
-const TASK_COMPLETIONS_TABLE_ID = 'f41liqs5qqyo'
 
 interface Task {
   _id: string
@@ -64,12 +60,42 @@ function TasksPage() {
   const loadTasks = async () => {
     try {
       setIsLoading(true)
-      const result = await table.getItems(TASKS_TABLE_ID, {
-        limit: 50,
-      })
+      // Database bağlantısı olmadan örnek görevler
+      const exampleTasks: Task[] = [
+        {
+          _id: '1',
+          title: 'Günlük Bonus',
+          description: 'Her gün 100 coin kazan',
+          reward: 100,
+          task_type: 'daily',
+          category: 'bonus',
+          action_type: 'auto_complete',
+          status: 'active'
+        },
+        {
+          _id: '2',
+          title: 'Telegram Kanalına Katıl',
+          description: 'Resmi Telegram kanalımıza katılın',
+          reward: 200,
+          task_type: 'special',
+          category: 'social',
+          action_type: 'external_link',
+          action_url: 'https://t.me/eserkaraeskichat',
+          status: 'active'
+        },
+        {
+          _id: '3',
+          title: 'Sponsor Ziyaret',
+          description: 'Sponsor sitemizi ziyaret edin',
+          reward: 150,
+          task_type: 'daily',
+          category: 'sponsor',
+          action_type: 'proof_submission',
+          status: 'active'
+        }
+      ]
       
-      const activeTasks = result.items.filter((t: any) => t.status === 'active') as Task[]
-      setTasks(activeTasks)
+      setTasks(exampleTasks)
     } catch (error) {
       console.error('Load tasks error:', error)
       toast({
@@ -86,12 +112,8 @@ function TasksPage() {
     if (!user) return
     
     try {
-      const result = await table.getItems(TASK_COMPLETIONS_TABLE_ID, {
-        limit: 100,
-      })
-      
-      const userCompletions = result.items.filter((c: any) => c.user_id === user.uid) as TaskCompletion[]
-      setCompletions(userCompletions)
+      // Database bağlantısı olmadan boş completion listesi
+      setCompletions([])
     } catch (error) {
       console.error('Load completions error:', error)
     }
@@ -145,14 +167,18 @@ function TasksPage() {
     try {
       setIsSubmitting(true)
 
-      await table.addItem(TASK_COMPLETIONS_TABLE_ID, {
-        _uid: user.uid,
+      // Database olmadan local storage'a kaydet
+      const newCompletion: TaskCompletion = {
+        _id: Date.now().toString(),
         task_id: task._id,
         user_id: user.uid,
         status: 'pending',
         proof_url: proof || '',
         submitted_at: new Date().toISOString(),
-      })
+      }
+
+      // Local completions'a ekle
+      setCompletions(prev => [...prev, newCompletion])
 
       triggerHaptic('heavy')
       triggerNotification('success')
@@ -161,9 +187,6 @@ function TasksPage() {
         title: 'Başarılı!',
         description: 'Görev tamamlama isteğiniz gönderildi. Onay bekleniyor.',
       })
-
-      // Reload completions
-      await loadCompletions()
 
       // Close dialog
       setSelectedTask(null)
